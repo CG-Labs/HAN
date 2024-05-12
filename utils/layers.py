@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-conv1d = tf.layers.conv1d
+conv1d = tf.keras.layers.Conv1D
 
 
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
@@ -9,10 +9,10 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
             seq = tf.nn.dropout(seq, 1.0 - in_drop)
-        seq_fts = tf.layers.conv1d(seq, out_sz, 1, use_bias=False)
+        seq_fts = conv1d(out_sz, 1, use_bias=False)(seq)
 
-        f_1 = tf.layers.conv1d(seq_fts, 1, 1)
-        f_2 = tf.layers.conv1d(seq_fts, 1, 1)
+        f_1 = conv1d(1, 1)(seq_fts)
+        f_2 = conv1d(1, 1)(seq_fts)
 
         logits = f_1 + tf.transpose(f_2, [0, 2, 1])
         logits = tf.debugging.check_numerics(logits, "logits contains NaN or Inf")
@@ -31,7 +31,7 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         if in_drop != 0.0:
             seq_fts = tf.nn.dropout(seq_fts, 1.0 - in_drop)
 
-        ret = tf.contrib.layers.bias_add(vals)
+        ret = tf.keras.layers.Add()([vals, tf.zeros_like(vals)])
         ret = tf.debugging.check_numerics(ret, "ret contains NaN or Inf after bias_add")
 
         if residual:
@@ -51,7 +51,7 @@ def attn_head_const_1(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
             seq = tf.nn.dropout(seq, 1.0 - in_drop)
-        seq_fts = tf.layers.conv1d(seq, out_sz, 1, use_bias=False)
+        seq_fts = conv1d(out_sz, 1, use_bias=False)(seq)
 
         logits = adj_mat
         coefs = tf.nn.softmax(tf.nn.leaky_relu(logits) + bias_mat)
@@ -62,7 +62,7 @@ def attn_head_const_1(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=
             seq_fts = tf.nn.dropout(seq_fts, 1.0 - in_drop)
 
         vals = tf.matmul(coefs, seq_fts)
-        ret = tf.contrib.layers.bias_add(vals)
+        ret = tf.keras.layers.Add()([vals, tf.zeros_like(vals)])
 
         if residual:
             if seq.shape[-1] != ret.shape[-1]:
@@ -78,10 +78,10 @@ def sp_attn_head(seq, out_sz, adj_mat, activation, nb_nodes, in_drop=0.0, coef_d
         if in_drop != 0.0:
             seq = tf.nn.dropout(seq, 1.0 - in_drop)
 
-        seq_fts = tf.layers.conv1d(seq, out_sz, 1, use_bias=False)
+        seq_fts = conv1d(out_sz, 1, use_bias=False)(seq)
 
-        f_1 = tf.layers.conv1d(seq_fts, 1, 1)
-        f_2 = tf.layers.conv1d(seq_fts, 1, 1)
+        f_1 = conv1d(1, 1)(seq_fts)
+        f_2 = conv1d(1, 1)(seq_fts)
         logits = tf.sparse_add(adj_mat * f_1, adj_mat * tf.transpose(f_2, [0, 2, 1]))
         lrelu = tf.SparseTensor(indices=logits.indices,
                                 values=tf.nn.leaky_relu(logits.values),
@@ -100,7 +100,7 @@ def sp_attn_head(seq, out_sz, adj_mat, activation, nb_nodes, in_drop=0.0, coef_d
         vals = tf.sparse_tensor_dense_matmul(coefs, seq_fts)
         vals = tf.expand_dims(vals, axis=0)
         vals.set_shape([1, nb_nodes, out_sz])
-        ret = tf.contrib.layers.bias_add(vals)
+        ret = tf.keras.layers.Add()([vals, tf.zeros_like(vals)])
 
         if residual:
             if seq.shape[-1] != ret.shape[-1]:
