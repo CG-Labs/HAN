@@ -139,11 +139,7 @@ with tf.Graph().as_default():
         ffd_drop = tf.compat.v1.placeholder(dtype=tf.float32, shape=(), name='ffd_drop')
         is_train = tf.compat.v1.placeholder(dtype=tf.bool, shape=(), name='is_train')
     # forward
-    logits, final_embedding, att_val = model.inference(ftr_in_list, nb_classes, nb_nodes, batch_size, is_train,
-                                                       attn_drop, ffd_drop,
-                                                       bias_mat_list=bias_in_list,
-                                                       hid_units=hid_units, n_heads=n_heads,
-                                                       residual=residual, activation=nonlinearity)
+    logits, final_embedding, att_val = model.inference(inputs_list=ftr_in_list, nb_classes=nb_classes, nb_nodes=nb_nodes, training=is_train, attn_drop=attn_drop, ffd_drop=ffd_drop, bias_mat_list=bias_in_list, hid_units=hid_units, n_heads=n_heads, batch_size=batch_size, activation=nonlinearity, residual=residual, mp_att_size=128)
     # Calculate masked loss
     logits_shape = tf.shape(logits)
     # Ensure logits tensor has the correct shape [batch_size, nb_nodes, nb_classes]
