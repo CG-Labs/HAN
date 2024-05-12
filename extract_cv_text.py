@@ -1,24 +1,56 @@
-from docx import Document
+import re
 
-def extract_text_from_doc(file_path):
-    # Load the DOC file
-    doc = Document(file_path)
-    full_text = []
+def parse_cv_sections(cv_text):
+    # Define the section headers
+    sections = {
+        'PERSONAL_PROFILE': 'PERSONAL PROFILE',
+        'KEY_SKILLS': 'KEY SKILLS',
+        'PROFESSIONAL_EXPERIENCE': 'PROFESSIONAL EXPERIENCE',
+        'EDUCATION': 'EDUCATION'
+    }
 
-    # Extract text from each paragraph in the document
-    for para in doc.paragraphs:
-        full_text.append(para.text)
+    # Dictionary to hold the content of each section
+    cv_data = {section: '' for section in sections}
 
-    # Join all text into a single string
-    return '\n'.join(full_text)
+    # Current section being processed
+    current_section = None
+
+    # Split the CV text into lines
+    lines = cv_text.split('\n')
+
+    # Iterate over each line in the CV text
+    for line in lines:
+        # Check if the line is a section header
+        for section, header in sections.items():
+            if header in line:
+                current_section = section
+                break
+
+        # If the line is part of a section, add it to the section content
+        if current_section:
+            cv_data[current_section] += line + '\n'
+
+    return cv_data
+
+def extract_text_from_txt(file_path):
+    # Read the plain text file
+    with open(file_path, 'r') as file:
+        cv_text = file.read()
+
+    # Parse the CV sections
+    cv_data = parse_cv_sections(cv_text)
+
+    return cv_data
 
 if __name__ == "__main__":
-    # Path to the DOC file
-    file_path = 'Alan_Woulfe_CV.doc'
+    # Path to the TXT file
+    file_path = 'Alan_Woulfe_CV.txt'
 
-    # Extract text from the DOC file
-    text_content = extract_text_from_doc(file_path)
+    # Extract text from the TXT file
+    cv_data = extract_text_from_txt(file_path)
 
-    # Save the extracted text to a TXT file
-    with open('cv_text.txt', 'w') as text_file:
-        text_file.write(text_content)
+    # For demonstration, print the extracted data
+    for section, content in cv_data.items():
+        print(f"Section: {section}")
+        print(content)
+        print("======================================")

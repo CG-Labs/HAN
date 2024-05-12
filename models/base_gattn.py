@@ -11,12 +11,12 @@ class BaseGAttN:
 
     def training(loss, lr, l2_coef):
         # weight decay
-        vars = tf.trainable_variables()
+        vars = tf.compat.v1.trainable_variables()
         lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in vars if v.name not
                            in ['bias', 'gamma', 'b', 'g', 'beta']]) * l2_coef
 
         # optimizer
-        opt = tf.train.AdamOptimizer(learning_rate=lr)
+        opt = tf.compat.v1.train.AdamOptimizer(learning_rate=lr)
 
         # training op
         train_op = opt.minimize(loss + lossL2)

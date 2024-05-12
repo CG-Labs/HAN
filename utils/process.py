@@ -11,17 +11,14 @@ import sys
  Finally, the matrix is converted to bias vectors.
  Expected shape: [graph, nodes, nodes]
 """
-def adj_to_bias(adj, sizes, nhood=1):
-    nb_graphs = adj.shape[0]
-    mt = np.empty(adj.shape)
-    for g in range(nb_graphs):
-        mt[g] = np.eye(adj.shape[1])
-        for _ in range(nhood):
-            mt[g] = np.matmul(mt[g], (adj[g] + np.eye(adj.shape[1])))
-        for i in range(sizes[g]):
-            for j in range(sizes[g]):
-                if mt[g][i][j] > 0.0:
-                    mt[g][i][j] = 1.0
+def adj_to_bias(adj, nhood=1):
+    mt = np.eye(adj.shape[0])
+    for _ in range(nhood):
+        mt = np.matmul(mt, (adj + np.eye(adj.shape[0])))
+    for i in range(adj.shape[0]):
+        for j in range(adj.shape[0]):
+            if mt[i][j] > 0.0:
+                mt[i][j] = 1.0
     return -1e9 * (1.0 - mt)
 
 
