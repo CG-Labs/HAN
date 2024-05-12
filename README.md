@@ -1,14 +1,52 @@
-# Paper
-https://github.com/Jhy1993/Representation-Learning-on-Heterogeneous-Graph
-# HAN
+# Heterogeneous Graph Attention Network (HAN)
 
-The source code of Heterogeneous Graph Attention Network (WWW-2019).
+This repository contains the implementation of the Heterogeneous Graph Attention Network (HAN) as described in the WWW-2019 paper. HAN is designed to work with heterogeneous graphs and utilizes an attention-based architecture for graph neural networks.
 
-The source code is based on [GAT](https://github.com/PetarV-/GAT) 
+## Installation
 
-# Reference
+To install and set up the HAN project, follow these steps:
 
-If you make advantage of the HAN model or use the datasets released in our paper, please cite the following in your manuscript:
+1. Clone the repository:
+   ```
+   git clone https://github.com/CG-Labs/HAN.git
+   ```
+2. Navigate to the cloned repository directory:
+   ```
+   cd HAN
+   ```
+3. Install the required dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+## Usage
+
+To use the HAN model, you need to preprocess your data and then run the training script:
+
+1. Preprocess your data using `data_preprocessing.py`. This script will convert your data into a format suitable for the HAN model.
+2. Run the model training script:
+   ```
+   python ex_acm3025.py
+   ```
+
+## Workflow
+
+```mermaid
+graph TD;
+    A[Data Preprocessing] --> B[Model Training];
+    B --> C[Model Evaluation];
+    C --> D[Visualization];
+```
+
+For a detailed workflow diagram, refer to the `workflow.mmd` file.
+
+## Requirements
+
+The `requirements.txt` file contains all the necessary packages to run the HAN project. Ensure you have installed all the dependencies listed in this file.
+
+## Citation
+
+If you find this implementation useful in your work, please consider citing:
 
 ```
 @article{han2019,
@@ -19,7 +57,7 @@ year={2019}
 }
 ```
 
-# How to preprocess DBLP? 
+# How to preprocess DBLP?
 
 Demo: preprocess_dblp.py
 
@@ -41,14 +79,14 @@ embeddings for previous unseen nodes or even unseen graph" means the propose HAN
 # Datasets
 
 Preprocessed ACM can be found in:
-https://pan.baidu.com/s/1V2iOikRqHPtVvaANdkzROw 
-提取码：50k2 
+https://pan.baidu.com/s/1V2iOikRqHPtVvaANdkzROw
+提取码：50k2
 
 https://bupteducn-my.sharepoint.com/:u:/g/personal/jhy1993_bupt_edu_cn/EfLZcHE2e4xBplCVnzcJbQYBurNVOCk7ZIne2YsO3jKbSw?e=vMQ18v
 
 Preprocessed DBLP can be found in:
-https://pan.baidu.com/s/1Qr2e97MofXsBhUvQqgJqDg 
-提取码：6b3h  
+https://pan.baidu.com/s/1Qr2e97MofXsBhUvQqgJqDg
+提取码：6b3h
 
 https://bupteducn-my.sharepoint.com/:u:/g/personal/jhy1993_bupt_edu_cn/Ef6A6m2njZ5CqkTN8QcwU8QBuENpB7eDVJRnsV9cWXWmsA?e=wlErKk
 
@@ -63,5 +101,3 @@ python ex_acm3025.py
 
 # HAN in DGL
 https://github.com/dmlc/dgl/tree/master/examples/pytorch/han
-
-
