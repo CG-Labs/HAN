@@ -49,6 +49,8 @@ print('residual: ' + str(residual))
 print('nonlinearity: ' + str(nonlinearity))
 print('model: ' + str(model))
 
+nb_classes = 3  # Assuming 3 classes for the purpose of generating dummy data
+
 # jhy data
 import scipy.io as sio
 import scipy.sparse as sp
@@ -72,7 +74,9 @@ def load_data_dblp(path='structured_cv_data.txt'):
     truefeatures = np.random.rand(N, 300)  # Dummy feature vectors
     rownetworks = [np.eye(N), np.eye(N)]  # Dummy adjacency matrices
 
-    y = np.random.randint(2, size=(N, 3))  # Dummy labels for 3 classes
+    y = np.zeros((N, nb_classes))  # Initialize labels with zeros for N nodes and nb_classes
+    y[np.arange(N), np.random.randint(nb_classes, size=N)] = 1  # Assign random classes ensuring correct number of classes
+
     train_idx = np.array(range(0, N, 2))  # Even indices for training
     val_idx = np.array(range(1, N, 4))  # Every fourth index for validation
     test_idx = np.array(range(3, N, 4))  # Every fourth index, offset by 2, for testing
@@ -84,16 +88,16 @@ def load_data_dblp(path='structured_cv_data.txt'):
     y_train = np.zeros(y.shape)
     y_val = np.zeros(y.shape)
     y_test = np.zeros(y.shape)
-    y_train[train_mask, :] = y[train_mask, :]
-    y_val[val_mask, :] = y[val_mask, :]
-    y_test[test_mask, :] = y[test_mask, :]
+    # Apply masks to select the appropriate rows for training, validation, and testing
+    y_train[train_mask, :] = y[np.where(train_mask)[0], :]
+    y_val[val_mask, :] = y[np.where(val_mask)[0], :]
+    y_test[test_mask, :] = y[np.where(test_mask)[0], :]
 
     truefeatures_list = [truefeatures for _ in range(len(rownetworks))]
     return rownetworks, truefeatures_list, y_train, y_val, y_test, train_mask, val_mask, test_mask
 
 
 # use adj_list as fea_list, have a try~
-
 
 adj_list, fea_list, y_train, y_val, y_test, train_mask, val_mask, test_mask = load_data_dblp()
 if featype == 'adj':
@@ -108,19 +112,19 @@ import scipy.sparse as sp
 
 nb_nodes = fea_list[0].shape[0]
 ft_size = fea_list[0].shape[1]
-nb_classes = y_train.shape[1]
+
+# Removed the redefinition of nb_classes to maintain the correct predefined value
 
 # adj = adj.todense()
 
 # features = features[np.newaxis]  # [1, nb_node, ft_size]
 fea_list = [fea[np.newaxis] for fea in fea_list]
 adj_list = [adj[np.newaxis] for adj in adj_list]
-y_train = y_train[np.newaxis]
-y_val = y_val[np.newaxis]
-y_test = y_test[np.newaxis]
-train_mask = train_mask[np.newaxis]
-val_mask = val_mask[np.newaxis]
-test_mask = test_mask[np.newaxis]
+
+# Removed the unnecessary reshaping of label tensors
+# y_train, y_val, y_test = y_train, y_val, y_test
+# Removed the unnecessary reshaping of mask tensors
+# train_mask, val_mask, test_mask = train_mask, val_mask, test_mask
 
 biases_list = [process.adj_to_bias(adj, [nb_nodes], nhood=1) for adj in adj_list]
 
@@ -166,12 +170,17 @@ with tf.Graph().as_default():
 
     # Calculate the correct size for the first dimension of the reshaped tensors
     reshaped_size = batch_size * nb_nodes
+    # Assert that the number of nodes in the labels matches the number of nodes in the logits
+    assert y_train.shape[1] == nb_classes, "Number of classes in y_train does not match nb_classes"
+    assert y_train.shape[0] == nb_nodes, "Number of nodes in y_train does not match nb_nodes"
     # Reshape logits to [batch_size * nb_nodes, nb_classes]
-    log_resh = tf.reshape(logits, [batch_size * nb_nodes, nb_classes])
+    log_resh = tf.reshape(logits, [reshaped_size, nb_classes])
     # Reshape labels to [batch_size * nb_nodes, nb_classes]
-    lab_resh = tf.reshape(lbl_in, [batch_size * nb_nodes, nb_classes])
+    lab_resh = tf.reshape(lbl_in, [reshaped_size, nb_classes])
     # Reshape mask to [batch_size * nb_nodes]
     msk_resh = tf.reshape(msk_in, [reshaped_size])
+    # Ensure that the first dimension of the logits and labels tensors are equal
+    assert log_resh.shape[0] == lab_resh.shape[0], "Mismatch in first dimension of logits and labels tensors after reshaping"
     loss = model.masked_softmax_cross_entropy(log_resh, lab_resh, msk_resh)
     accuracy = model.masked_accuracy(log_resh, lab_resh, msk_resh)
     # optimzie

@@ -46,11 +46,15 @@ class BaseGAttN:
         labels = tf.cast(labels, dtype=tf.int32)
         labels = tf.one_hot(labels, depth=logits.shape[-1])
 
-        loss = tf.nn.softmax_cross_entropy_with_logits(
-            logits=logits, labels=labels)
+        # Apply mask
         mask = tf.cast(mask, dtype=tf.float32)
         mask /= tf.reduce_mean(mask)
-        loss *= mask
+        logits_masked = tf.boolean_mask(logits, mask)
+        labels_masked = tf.boolean_mask(labels, mask)
+
+        loss = tf.nn.softmax_cross_entropy_with_logits(
+            logits=logits_masked, labels=labels_masked)
+
         return tf.reduce_mean(loss)
 
     def masked_sigmoid_cross_entropy(logits, labels, mask):
