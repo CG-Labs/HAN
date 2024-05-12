@@ -64,7 +64,7 @@ def create_graph_structure(personal_details, skills, experiences, education):
     return nodes, edges
 
 if __name__ == "__main__":
-    cv_text = read_cv_text('cv_text.txt')
+    cv_text = read_cv_text('Alan_Woulfe_CV.txt')
     personal_details = parse_personal_details(cv_text)
     skills = parse_key_skills(cv_text)
     experiences = parse_professional_experience(cv_text)
