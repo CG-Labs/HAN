@@ -4,6 +4,8 @@ import tensorflow as tf
 import sys
 
 from models import GAT, HeteGAT, HeteGAT_multi
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
 from utils import process
 
 # 禁用gpu
@@ -304,5 +306,23 @@ with tf.Graph().as_default():
 
         my_KNN(xx, yy)
         my_Kmeans(xx, yy)
+
+        # Apply t-SNE visualization on the final embeddings
+        def visualize_with_tsne(embeddings, labels):
+            tsne = TSNE(n_components=2, perplexity=30, n_iter=300)
+            tsne_results = tsne.fit_transform(embeddings)
+
+            plt.figure(figsize=(10, 10))
+            for class_id in np.unique(labels):
+                indices = labels == class_id
+                plt.scatter(tsne_results[indices, 0], tsne_results[indices, 1], label=str(class_id))
+            plt.legend()
+            plt.title('t-SNE visualization of embeddings')
+            plt.xlabel('Component 1')
+            plt.ylabel('Component 2')
+            plt.show()
+
+        # Call the visualization function with the final embeddings and the corresponding labels
+        visualize_with_tsne(jhy_final_embedding, yy)
 
         sess.close()
