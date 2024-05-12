@@ -118,7 +118,7 @@ def SimpleAttLayer(inputs, attention_size, time_major=False, return_alphas=False
     if time_major:
         inputs = tf.array_ops.transpose(inputs, [1, 0, 2])
 
-    hidden_size = inputs.shape[2].value
+    hidden_size = inputs.shape[2]
 
     w_omega = tf.Variable(tf.random_normal([hidden_size, attention_size], stddev=0.1))
     b_omega = tf.Variable(tf.random_normal([attention_size], stddev=0.1))
