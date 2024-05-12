@@ -139,7 +139,7 @@ with tf.Graph().as_default():
         ffd_drop = tf.compat.v1.placeholder(dtype=tf.float32, shape=(), name='ffd_drop')
         is_train = tf.compat.v1.placeholder(dtype=tf.bool, shape=(), name='is_train')
     # forward
-    logits, final_embedding, att_val = model.inference(ftr_in_list, nb_classes, nb_nodes, is_train,
+    logits, final_embedding, att_val = model.inference(ftr_in_list, nb_classes, nb_nodes, batch_size, is_train,
                                                        attn_drop, ffd_drop,
                                                        bias_mat_list=bias_in_list,
                                                        hid_units=hid_units, n_heads=n_heads,
