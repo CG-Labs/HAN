@@ -54,16 +54,21 @@ def sample_mask(idx, l):
     return np.array(mask, dtype=np.bool)
 
 
-def load_data_dblp(path='path/to/your/ACM3025.mat'):
-    data = sio.loadmat(path)
-    truelabels, truefeatures = data['label'], data['feature'].astype(float)
-    N = truefeatures.shape[0]
-    rownetworks = [data['PAP'] - np.eye(N), data['PLP'] - np.eye(N)]  # , data['PTP'] - np.eye(N)]
+def load_data_dblp(path='path/to/your/structured_cv_data.txt'):
+    # Load structured CV data from text file
+    with open(path, 'r') as file:
+        structured_data = file.read()
 
-    y = truelabels
-    train_idx = data['train_idx']
-    val_idx = data['val_idx']
-    test_idx = data['test_idx']
+    # TODO: Parse structured data into feature vectors and adjacency matrices
+    # For now, create dummy data for testing purposes
+    N = 10  # Number of nodes, e.g., different sections in the CV
+    truefeatures = np.random.rand(N, 300)  # Dummy feature vectors
+    rownetworks = [np.eye(N), np.eye(N)]  # Dummy adjacency matrices
+
+    y = np.random.randint(2, size=(N, 3))  # Dummy labels for 3 classes
+    train_idx = np.array(range(0, N, 2))  # Even indices for training
+    val_idx = np.array(range(1, N, 4))  # Every fourth index for validation
+    test_idx = np.array(range(3, N, 4))  # Every fourth index, offset by 2, for testing
 
     train_mask = sample_mask(train_idx, y.shape[0])
     val_mask = sample_mask(val_idx, y.shape[0])
@@ -76,18 +81,13 @@ def load_data_dblp(path='path/to/your/ACM3025.mat'):
     y_val[val_mask, :] = y[val_mask, :]
     y_test[test_mask, :] = y[test_mask, :]
 
-    # return selected_idx, selected_idx_2
-    print('y_train:{}, y_val:{}, y_test:{}, train_idx:{}, val_idx:{}, test_idx:{}'.format(y_train.shape,
-                                                                                          y_val.shape,
-                                                                                          y_test.shape,
-                                                                                          train_idx.shape,
-                                                                                          val_idx.shape,
-                                                                                          test_idx.shape))
-    truefeatures_list = [truefeatures, truefeatures, truefeatures]
+    truefeatures_list = [truefeatures for _ in range(len(rownetworks))]
     return rownetworks, truefeatures_list, y_train, y_val, y_test, train_mask, val_mask, test_mask
 
 
 # use adj_list as fea_list, have a try~
+
+
 adj_list, fea_list, y_train, y_val, y_test, train_mask, val_mask, test_mask = load_data_dblp()
 if featype == 'adj':
     fea_list = adj_list
