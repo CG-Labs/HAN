@@ -46,9 +46,13 @@ class HeteGAT_multi(BaseGAttN):
                                               in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
                 # Debug: Log the output of each attention head
                 tf.print("Attention head output:", attns[-1], output_stream=sys.stdout)
+                # Debug: Log the shape of each attention head output
+                tf.print("Shape of attention head output:", tf.shape(attns[-1]), output_stream=sys.stdout)
             h_1 = tf.concat(attns, axis=-1)
             # Debug: Log the concatenated attention heads output
             tf.print("Concatenated attention heads output (h_1):", h_1, output_stream=sys.stdout)
+            # Debug: Log the shape of concatenated attention heads output
+            tf.print("Shape of concatenated attention heads output (h_1):", tf.shape(h_1), output_stream=sys.stdout)
             # Check for zeroed embeddings after concatenation
             h_1_non_zero = tf.math.count_nonzero(h_1)
             tf.debugging.assert_positive(h_1_non_zero, message="h_1 embeddings are all zeros after concatenation")
@@ -56,6 +60,8 @@ class HeteGAT_multi(BaseGAttN):
         multi_embed = tf.concat(embed_list, axis=1)
         # Debug: Log the concatenated embeddings from all types of nodes
         tf.print("Concatenated embeddings from all types of nodes (multi_embed):", multi_embed, output_stream=sys.stdout)
+        # Debug: Log the shape of concatenated embeddings from all types of nodes
+        tf.print("Shape of concatenated embeddings from all types of nodes (multi_embed):", tf.shape(multi_embed), output_stream=sys.stdout)
         # Check for zeroed embeddings after concatenating all types of nodes
         multi_embed_non_zero = tf.math.count_nonzero(multi_embed)
         tf.debugging.assert_positive(multi_embed_non_zero, message="multi_embed embeddings are all zeros after concatenating all types of nodes")
