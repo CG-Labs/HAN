@@ -54,7 +54,7 @@ def sample_mask(idx, l):
     return np.array(mask, dtype=np.bool)
 
 
-def load_data_dblp(path='path/to/your/structured_cv_data.txt'):
+def load_data_dblp(path='structured_cv_data.txt'):
     # Load structured CV data from text file
     with open(path, 'r') as file:
         structured_data = file.read()
