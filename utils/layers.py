@@ -120,9 +120,9 @@ def SimpleAttLayer(inputs, attention_size, time_major=False, return_alphas=False
 
     hidden_size = inputs.shape[2]
 
-    w_omega = tf.Variable(tf.random_normal([hidden_size, attention_size], stddev=0.1))
-    b_omega = tf.Variable(tf.random_normal([attention_size], stddev=0.1))
-    u_omega = tf.Variable(tf.random_normal([attention_size], stddev=0.1))
+    w_omega = tf.Variable(tf.random.normal([hidden_size, attention_size], stddev=0.1))
+    b_omega = tf.Variable(tf.random.normal([attention_size], stddev=0.1))
+    u_omega = tf.Variable(tf.random.normal([attention_size], stddev=0.1))
 
     with tf.name_scope('v'):
         v = tf.tanh(tf.tensordot(inputs, w_omega, axes=1) + b_omega)
