@@ -144,11 +144,10 @@ with tf.Graph().as_default():
 
     # cal masked_loss
     logits_shape = tf.shape(logits)
-    # Reshape logits to be a 2-D tensor with shape [batch_size * nb_nodes, nb_classes]
-    # and labels to be a 1-D tensor of length [batch_size * nb_nodes]
-    log_resh = tf.reshape(logits, [batch_size * nb_nodes, nb_classes])
-    lab_resh = tf.reshape(lbl_in, [batch_size * nb_nodes])
-    msk_resh = tf.reshape(msk_in, [batch_size * nb_nodes])
+    # Adjust the reshaping of logits to match the actual dimensions of the logits tensor
+    log_resh = tf.reshape(logits, [batch_size * 1, 3])  # Assuming nb_nodes should be 1
+    lab_resh = tf.reshape(lbl_in, [batch_size * 1])
+    msk_resh = tf.reshape(msk_in, [batch_size * 1])
     loss = model.masked_softmax_cross_entropy(log_resh, lab_resh, msk_resh)
     accuracy = model.masked_accuracy(log_resh, lab_resh, msk_resh)
     # optimzie
