@@ -10,7 +10,7 @@ import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
 
-config = tf.ConfigProto()
+config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
 
 dataset = 'acm'
@@ -160,7 +160,7 @@ with tf.Graph().as_default():
     vacc_mx = 0.0
     curr_step = 0
 
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         sess.run(init_op)
 
         train_loss_avg = 0
@@ -170,7 +170,7 @@ with tf.Graph().as_default():
 
         for epoch in range(nb_epochs):
             tr_step = 0
-           
+
             tr_size = fea_list[0].shape[0]
             # ================   training    ============
             while tr_step * batch_size < tr_size:
@@ -207,7 +207,7 @@ with tf.Graph().as_default():
                        is_train: False,
                        attn_drop: 0.0,
                        ffd_drop: 0.0}
-          
+
                 fd = fd1
                 fd.update(fd2)
                 fd.update(fd3)
@@ -259,11 +259,11 @@ with tf.Graph().as_default():
                    for i, d in zip(bias_in_list, biases_list)}
             fd3 = {lbl_in: y_test[ts_step * batch_size:(ts_step + 1) * batch_size],
                    msk_in: test_mask[ts_step * batch_size:(ts_step + 1) * batch_size],
-            
+
                    is_train: False,
                    attn_drop: 0.0,
                    ffd_drop: 0.0}
-        
+
             fd = fd1
             fd.update(fd2)
             fd.update(fd3)
@@ -278,7 +278,7 @@ with tf.Graph().as_default():
 
         print('start knn, kmean.....')
         xx = np.expand_dims(jhy_final_embedding, axis=0)[test_mask]
-  
+
         from numpy import linalg as LA
 
         # xx = xx / LA.norm(xx, axis=1)
