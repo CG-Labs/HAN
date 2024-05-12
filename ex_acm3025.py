@@ -8,6 +8,7 @@ from models import GAT, HeteGAT, HeteGAT_multi
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 from utils import process
+from process_cv_data import process_cv_data
 
 # 禁用gpu
 import os
@@ -65,35 +66,11 @@ def sample_mask(idx, l):
 
 def load_data_dblp(path='structured_cv_data.txt'):
     # Load structured CV data from text file
-    with open(path, 'r') as file:
-        structured_data = file.read()
+    cv_data = process_cv_data(path)
 
-    # TODO: Parse structured data into feature vectors and adjacency matrices
-    # For now, create dummy data for testing purposes
-    N = 10  # Number of nodes, e.g., different sections in the CV
-    truefeatures = np.random.rand(N, 300)  # Dummy feature vectors
-    rownetworks = [np.eye(N), np.eye(N)]  # Dummy adjacency matrices
+    # Use the processed CV data to create feature vectors and adjacency matrices
+    rownetworks, truefeatures_list, y_train, y_val, y_test, train_mask, val_mask, test_mask = cv_data
 
-    y = np.zeros((N, nb_classes))  # Initialize labels with zeros for N nodes and nb_classes
-    y[np.arange(N), np.random.randint(nb_classes, size=N)] = 1  # Assign random classes ensuring correct number of classes
-
-    train_idx = np.array(range(0, N, 2))  # Even indices for training
-    val_idx = np.array(range(1, N, 4))  # Every fourth index for validation
-    test_idx = np.array(range(3, N, 4))  # Every fourth index, offset by 2, for testing
-
-    train_mask = sample_mask(train_idx, y.shape[0])
-    val_mask = sample_mask(val_idx, y.shape[0])
-    test_mask = sample_mask(test_idx, y.shape[0])
-
-    y_train = np.zeros(y.shape)
-    y_val = np.zeros(y.shape)
-    y_test = np.zeros(y.shape)
-    # Apply masks to select the appropriate rows for training, validation, and testing
-    y_train[train_mask, :] = y[np.where(train_mask)[0], :]
-    y_val[val_mask, :] = y[np.where(val_mask)[0], :]
-    y_test[test_mask, :] = y[np.where(test_mask)[0], :]
-
-    truefeatures_list = [truefeatures for _ in range(len(rownetworks))]
     return rownetworks, truefeatures_list, y_train, y_val, y_test, train_mask, val_mask, test_mask
 
 
