@@ -143,8 +143,9 @@ with tf.Graph().as_default():
                                                        residual=residual, activation=nonlinearity)
 
     # cal masked_loss
-    log_resh = tf.reshape(logits, [-1, nb_classes])
-    lab_resh = tf.reshape(lbl_in, [-1, nb_classes])
+    logits_shape = tf.shape(logits)
+    log_resh = tf.reshape(logits, [-1, logits_shape[-1]])
+    lab_resh = tf.reshape(lbl_in, [-1, logits_shape[-1]])
     msk_resh = tf.reshape(msk_in, [-1])
     loss = model.masked_softmax_cross_entropy(log_resh, lab_resh, msk_resh)
     accuracy = model.masked_accuracy(log_resh, lab_resh, msk_resh)

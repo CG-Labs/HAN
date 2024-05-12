@@ -40,6 +40,10 @@ class BaseGAttN:
 
     def masked_softmax_cross_entropy(logits, labels, mask):
         """Softmax cross-entropy loss with masking."""
+        # Ensure that the labels are one-hot encoded
+        labels = tf.cast(labels, dtype=tf.int32)
+        labels = tf.one_hot(labels, depth=logits.shape[-1])
+
         loss = tf.nn.softmax_cross_entropy_with_logits(
             logits=logits, labels=labels)
         mask = tf.cast(mask, dtype=tf.float32)
