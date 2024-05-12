@@ -120,21 +120,21 @@ biases_list = [process.adj_to_bias(adj, [nb_nodes], nhood=1) for adj in adj_list
 print('build graph...')
 with tf.Graph().as_default():
     with tf.name_scope('input'):
-        ftr_in_list = [tf.placeholder(dtype=tf.float32,
+        ftr_in_list = [tf.compat.v1.placeholder(dtype=tf.float32,
                                       shape=(batch_size, nb_nodes, ft_size),
                                       name='ftr_in_{}'.format(i))
                        for i in range(len(fea_list))]
-        bias_in_list = [tf.placeholder(dtype=tf.float32,
+        bias_in_list = [tf.compat.v1.placeholder(dtype=tf.float32,
                                        shape=(batch_size, nb_nodes, nb_nodes),
                                        name='bias_in_{}'.format(i))
                         for i in range(len(biases_list))]
-        lbl_in = tf.placeholder(dtype=tf.int32, shape=(
+        lbl_in = tf.compat.v1.placeholder(dtype=tf.int32, shape=(
             batch_size, nb_nodes, nb_classes), name='lbl_in')
-        msk_in = tf.placeholder(dtype=tf.int32, shape=(batch_size, nb_nodes),
+        msk_in = tf.compat.v1.placeholder(dtype=tf.int32, shape=(batch_size, nb_nodes),
                                 name='msk_in')
-        attn_drop = tf.placeholder(dtype=tf.float32, shape=(), name='attn_drop')
-        ffd_drop = tf.placeholder(dtype=tf.float32, shape=(), name='ffd_drop')
-        is_train = tf.placeholder(dtype=tf.bool, shape=(), name='is_train')
+        attn_drop = tf.compat.v1.placeholder(dtype=tf.float32, shape=(), name='attn_drop')
+        ffd_drop = tf.compat.v1.placeholder(dtype=tf.float32, shape=(), name='ffd_drop')
+        is_train = tf.compat.v1.placeholder(dtype=tf.bool, shape=(), name='is_train')
     # forward
     logits, final_embedding, att_val = model.inference(ftr_in_list, nb_classes, nb_nodes, is_train,
                                                        attn_drop, ffd_drop,
