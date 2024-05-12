@@ -23,9 +23,11 @@ class BaseGAttN:
 
         return train_op
 
-    def preshape(logits, labels, nb_classes):
-        new_sh_lab = [-1]
-        new_sh_log = [-1, nb_classes]
+    def preshape(logits, labels, nb_classes, batch_size, nb_nodes):
+        # Explicitly calculate the correct size for the first dimension of the reshaped tensors
+        reshaped_size = batch_size * nb_nodes
+        new_sh_log = [reshaped_size, nb_classes]
+        new_sh_lab = [reshaped_size, nb_classes]
         log_resh = tf.reshape(logits, new_sh_log)
         lab_resh = tf.reshape(labels, new_sh_lab)
         return log_resh, lab_resh

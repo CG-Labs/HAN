@@ -2,6 +2,7 @@ import time
 import numpy as np
 import tensorflow as tf
 import sys
+import logging
 
 from models import GAT, HeteGAT, HeteGAT_multi
 from sklearn.manifold import TSNE
@@ -15,6 +16,9 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
 
 config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
+
+# Set up logging at the start to capture all messages
+logging.basicConfig(filename='debug.log', level=logging.DEBUG, filemode='w', format='%(asctime)s - %(levelname)s - %(message)s')
 
 dataset = 'acm'
 featype = 'fea'
@@ -144,21 +148,30 @@ with tf.Graph().as_default():
     logits_shape = tf.shape(logits)
     # Ensure logits tensor has the correct shape [batch_size, nb_nodes, nb_classes]
     expected_shape = tf.constant([batch_size, nb_nodes, nb_classes])
+
     # Log the shape of logits for debugging
-    tf.print("Logits shape:", logits_shape, output_stream=sys.stdout)
+    logging.debug("Logits shape: %s", logits_shape)
     # Log the expected shape for debugging
-    tf.print("Expected shape:", expected_shape, output_stream=sys.stdout)
+    logging.debug("Expected shape: %s", expected_shape)
 
     # If the shape is not as expected, raise an error
     with tf.control_dependencies([tf.debugging.assert_equal(logits_shape, expected_shape, message="Logits tensor shape does not match expected shape")]):
         logits = tf.identity(logits)
 
+    # Debugging: Log the shapes of logits and labels before reshaping
+    logits_shape_before_reshape = tf.shape(logits)
+    labels_shape_before_reshape = tf.shape(lbl_in)
+    logging.debug("Logits shape before reshape: %s", logits_shape_before_reshape)
+    logging.debug("Labels shape before reshape: %s", labels_shape_before_reshape)
+
+    # Calculate the correct size for the first dimension of the reshaped tensors
+    reshaped_size = batch_size * nb_nodes
     # Reshape logits to [batch_size * nb_nodes, nb_classes]
     log_resh = tf.reshape(logits, [batch_size * nb_nodes, nb_classes])
     # Reshape labels to [batch_size * nb_nodes, nb_classes]
     lab_resh = tf.reshape(lbl_in, [batch_size * nb_nodes, nb_classes])
     # Reshape mask to [batch_size * nb_nodes]
-    msk_resh = tf.reshape(msk_in, [batch_size * nb_nodes])
+    msk_resh = tf.reshape(msk_in, [reshaped_size])
     loss = model.masked_softmax_cross_entropy(log_resh, lab_resh, msk_resh)
     accuracy = model.masked_accuracy(log_resh, lab_resh, msk_resh)
     # optimzie
@@ -205,6 +218,12 @@ with tf.Graph().as_default():
                 train_loss_avg += loss_value_tr
                 train_acc_avg += acc_tr
                 tr_step += 1
+
+                # Evaluate and log the shapes of logits and labels after they have been computed
+                logits_shape_evaluated, labels_shape_evaluated = sess.run([logits_shape_before_reshape, labels_shape_before_reshape], feed_dict=fd)
+                logging.debug("Evaluated logits shape: %s", logits_shape_evaluated)
+                logging.debug("Evaluated labels shape: %s", labels_shape_evaluated)
+                logging.getLogger().handlers[0].flush()
 
             vl_step = 0
             vl_size = fea_list[0].shape[0]

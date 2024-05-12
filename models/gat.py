@@ -57,19 +57,22 @@ class HeteGAT_multi(BaseGAttN):
         final_embed, att_val = layers.SimpleAttLayer(multi_embed, mp_att_size,
                                                      time_major=False,
                                                      return_alphas=True)
-        out = []
+        # Initialize logits tensor as a list to collect outputs from each head
+        logits_list = []
         for i in range(n_heads[-1]):
-            out.append(tf.keras.layers.Dense(nb_classes, activation=None)(final_embed))
-        logits = tf.add_n(out) / n_heads[-1]
-
-        # Verify that the logits tensor has the correct initial shape [batch_size, nb_nodes, nb_classes]
+            # Each head outputs a tensor with shape [1, nb_nodes, nb_classes]
+            head_output = tf.keras.layers.Dense(nb_nodes * nb_classes, activation=None)(final_embed)
+            head_output = tf.reshape(head_output, [1, nb_nodes, nb_classes])
+            logits_list.append(head_output)
+        # Combine the outputs from all heads by averaging
+        logits = tf.reduce_mean(tf.stack(logits_list), axis=0)
+        # Ensure logits tensor has the correct shape [batch_size, nb_nodes, nb_classes]
+        logits = tf.reshape(logits, [batch_size, nb_nodes, nb_classes])
+        # Verify that the logits tensor has the correct shape
         logits_shape = tf.shape(logits)
         expected_shape = [batch_size, nb_nodes, nb_classes]
-        shape_check = tf.debugging.assert_equal(logits_shape, expected_shape, message="Logits tensor shape does not match expected shape")
-
-        # Use control dependencies to ensure the shape check is executed before reshaping
-        with tf.control_dependencies([shape_check]):
-            logits = tf.reshape(logits, [batch_size, nb_nodes, nb_classes])
+        with tf.control_dependencies([tf.debugging.assert_equal(logits_shape, expected_shape, message="Logits tensor shape does not match expected shape")]):
+            logits = tf.identity(logits)
 
         return logits, final_embed, att_val
 
