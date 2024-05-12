@@ -31,41 +31,47 @@ class GAT(BaseGAttN):
         logits = tf.add_n(out) / n_heads[-1]
         return logits
 
-
 class HeteGAT_multi(BaseGAttN):
-    class HeteGAT_multi(BaseGAttN):
-        def inference(inputs_list, nb_classes, nb_nodes, training, attn_drop, ffd_drop,
-                      bias_mat_list, hid_units, n_heads, activation=tf.nn.elu, residual=False,
-                      mp_att_size=128):
-            embed_list = []
-            for inputs, bias_mat in zip(inputs_list, bias_mat_list):
-                attns = []
-                jhy_embeds = []
-                for _ in range(n_heads[0]):
-                    attns.append(layers.attn_head(inputs, bias_mat=bias_mat,
-                                                  out_sz=hid_units[0], activation=activation,
-                                                  in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
-                h_1 = tf.concat(attns, axis=-1)
-                embed_list.append(h_1)
-            multi_embed = tf.concat(embed_list, axis=1)
-            for i in range(1, len(hid_units)):
-                h_old = h_1
-                attns = []
-                for _ in range(n_heads[i]):
-                    attns.append(layers.attn_head(h_1, bias_mat=bias_mat,
-                                                  out_sz=hid_units[i],
-                                                  in_drop=ffd_drop,
-                                                  coef_drop=attn_drop, residual=residual))
-            final_embed, att_val = layers.SimpleAttLayer(multi_embed, mp_att_size,
-                                                         time_major=False,
-                                                         return_alphas=True)
-            out = []
-            for i in range(n_heads[-1]):
-                out.append(tf.keras.layers.Dense(nb_classes, activation=None)(final_embed))
-            logits = tf.add_n(out) / n_heads[-1]
-            logits = tf.reshape(logits, [-1, nb_nodes, nb_classes])  # Reshape to ensure correct shape
-            return logits, final_embed, att_val
+    def inference(inputs_list, nb_classes, nb_nodes, training, attn_drop, ffd_drop,
+                  bias_mat_list, hid_units, n_heads, activation=tf.nn.elu, residual=False,
+                  mp_att_size=128):
+        embed_list = []
+        for inputs, bias_mat in zip(inputs_list, bias_mat_list):
+            attns = []
+            jhy_embeds = []
+            for _ in range(n_heads[0]):
+                attns.append(layers.attn_head(inputs, bias_mat=bias_mat,
+                                              out_sz=hid_units[0], activation=activation,
+                                              in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
+            h_1 = tf.concat(attns, axis=-1)
+            embed_list.append(h_1)
+        multi_embed = tf.concat(embed_list, axis=1)
+        for i in range(1, len(hid_units)):
+            h_old = h_1
+            attns = []
+            for _ in range(n_heads[i]):
+                attns.append(layers.attn_head(h_1, bias_mat=bias_mat,
+                                              out_sz=hid_units[i],
+                                              in_drop=ffd_drop,
+                                              coef_drop=attn_drop, residual=residual))
+        final_embed, att_val = layers.SimpleAttLayer(multi_embed, mp_att_size,
+                                                     time_major=False,
+                                                     return_alphas=True)
+        out = []
+        for i in range(n_heads[-1]):
+            out.append(tf.keras.layers.Dense(nb_classes, activation=None)(final_embed))
+        logits = tf.add_n(out) / n_heads[-1]
 
+        # Verify that the logits tensor has the correct initial shape [batch_size, nb_nodes, nb_classes]
+        logits_shape = tf.shape(logits)
+        expected_shape = [batch_size, nb_nodes, nb_classes]
+        shape_check = tf.debugging.assert_equal(logits_shape, expected_shape, message="Logits tensor shape does not match expected shape")
+
+        # Use control dependencies to ensure the shape check is executed before reshaping
+        with tf.control_dependencies([shape_check]):
+            logits = tf.reshape(logits, [batch_size, nb_nodes, nb_classes])
+
+        return logits, final_embed, att_val
 
 class HeteGAT_no_coef(BaseGAttN):
     def inference(inputs, nb_classes, nb_nodes, training, attn_drop, ffd_drop,
@@ -105,7 +111,6 @@ class HeteGAT_no_coef(BaseGAttN):
         print('de')
         logits = tf.expand_dims(logits, axis=0)
         return logits, final_embed, att_val
-
 
 class HeteGAT(BaseGAttN):
     def inference(inputs, nb_classes, nb_nodes, training, attn_drop, ffd_drop,

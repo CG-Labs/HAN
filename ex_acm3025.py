@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import tensorflow as tf
+import sys
 
 from models import GAT, HeteGAT, HeteGAT_multi
 from utils import process
@@ -141,15 +142,18 @@ with tf.Graph().as_default():
                                                        bias_mat_list=bias_in_list,
                                                        hid_units=hid_units, n_heads=n_heads,
                                                        residual=residual, activation=nonlinearity)
-
-    # cal masked_loss
+    # Calculate masked loss
     logits_shape = tf.shape(logits)
     # Ensure logits tensor has the correct shape [batch_size, nb_nodes, nb_classes]
     expected_shape = tf.constant([batch_size, nb_nodes, nb_classes])
-    condition = tf.reduce_all(tf.equal(logits_shape, expected_shape))
+    # Log the shape of logits for debugging
+    tf.print("Logits shape:", logits_shape, output_stream=sys.stdout)
+    # Log the expected shape for debugging
+    tf.print("Expected shape:", expected_shape, output_stream=sys.stdout)
 
-    # If the shape is not as expected, adjust the dimensions
-    logits = tf.cond(condition, lambda: logits, lambda: tf.debugging.set_shape(logits, [batch_size, nb_nodes, nb_classes]))
+    # If the shape is not as expected, raise an error
+    with tf.control_dependencies([tf.debugging.assert_equal(logits_shape, expected_shape, message="Logits tensor shape does not match expected shape")]):
+        logits = tf.identity(logits)
 
     # Reshape logits to [batch_size * nb_nodes, nb_classes]
     log_resh = tf.reshape(logits, [batch_size * nb_nodes, nb_classes])
