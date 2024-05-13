@@ -147,6 +147,8 @@ if checkpoint_manager.latest_checkpoint:
     checkpoint.restore(checkpoint_manager.latest_checkpoint)
     print('Model restored from checkpoint at {}'.format(checkpoint_manager.latest_checkpoint))
 
+# Removed erroneous model call outside of the training loop that caused 'batch_features' NameError
+
 # Removed erroneous model call with 'batch_features' outside training loop to fix NameError
 
 # Removed erroneous model call with 'batch_features' outside training loop to fix NameError
