@@ -179,6 +179,13 @@ def visualize_with_tsne(embeddings, labels):
     plt.show()
 
 # Removed incorrect assignment of final_embedding outside of TensorFlow session scope
+# Removed redundant call to visualize_with_tsne
+
+# Removed incorrect assignment of final_embedding outside of TensorFlow session scope
+
+# Removed redundant call to visualize_with_tsne
+
+# Removed incorrect assignment of final_embedding outside of TensorFlow session scope
 
 # Removed incorrect assignment of final_embedding outside of TensorFlow session scope
 
