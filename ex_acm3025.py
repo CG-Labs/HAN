@@ -116,11 +116,17 @@ else:
     logging.error("Feature list is empty. Cannot proceed with model training.")
     sys.exit("Error: Feature list is empty.")
 
-# Removed redundant checkpoint and checkpoint_manager definitions
-
-# Restore the latest checkpoint using TensorFlow 2.x checkpointing
 # Initialize the checkpoint manager for saving and loading model checkpoints
 checkpoint_prefix = './checkpoints/ckpt'
+
+# Define the optimizer and loss function for the model training
+optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+
+# Define the training dataset using the TensorFlow 2.x Dataset API
+train_dataset = tf.data.Dataset.from_tensor_slices((feature_vectors, y_train))
+train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size)
+
 checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
 checkpoint_manager = tf.train.CheckpointManager(checkpoint, directory=checkpoint_prefix, max_to_keep=5)
 
@@ -131,6 +137,14 @@ if checkpoint_manager.latest_checkpoint:
 # Initialize lists to collect embeddings and labels from each batch
 all_embeddings = []
 all_labels = []
+
+# Define the optimizer and loss function for the model training
+optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+
+# Define the training dataset using the TensorFlow 2.x Dataset API
+train_dataset = tf.data.Dataset.from_tensor_slices((feature_vectors, y_train))
+train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size)
 
 # Define the optimizer and loss function for the model training
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
