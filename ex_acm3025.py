@@ -75,35 +75,10 @@ def load_data_dblp(cv_path='Alan_Woulfe_CV.txt'):
     # Unpack the processed CV data to create feature vectors and adjacency matrices
     feature_vectors_list, adjacency_matrix, y_train, y_val, y_test, train_mask, val_mask, test_mask = cv_data
 
-    # Adjust the shape of y_train, y_val, y_test to match the number of nodes
+    # The number of nodes is the length of the feature vectors list
     nb_nodes = len(feature_vectors_list)
-    nb_classes = 1  # Temporary single class for all nodes, to be defined based on use case
-
-    # Assign nodes to train, validation, and test sets
-    num_train = int(nb_nodes * 0.6)
-    num_val = int(nb_nodes * 0.2)
-    num_test = nb_nodes - num_train - num_val
-
-    # Initialize y_train, y_val, y_test with the correct number of classes for each node
-    y_train = np.zeros((nb_nodes, nb_classes))
-    y_val = np.zeros((nb_nodes, nb_classes))
-    y_test = np.zeros((nb_nodes, nb_classes))
-
-    # Assign class labels to nodes for training, validation, and testing
-    # Here we assign a dummy class label of 1 for demonstration purposes
-    # This should be replaced with actual class labels derived from the CV data
-    y_train[:num_train, :] = 1
-    y_val[num_train:num_train + num_val, :] = 1
-    y_test[num_train + num_val:, :] = 1
-
-    # Update the masks to match the number of nodes
-    train_mask = np.zeros((nb_nodes,)).astype(bool)
-    val_mask = np.zeros((nb_nodes,)).astype(bool)
-    test_mask = np.zeros((nb_nodes,)).astype(bool)
-
-    train_mask[:num_train] = True
-    val_mask[num_train:num_train + num_val] = True
-    test_mask[num_train + num_val:] = True
+    # The number of classes is the shape of the second dimension of y_train
+    nb_classes = y_train.shape[1]
 
     # Instantiate the model with the correct number of nodes and classes
     model = HeteGAT_multi(nb_classes=nb_classes, nb_nodes=nb_nodes, hid_units=hid_units, n_heads=n_heads, activation=nonlinearity, residual=residual)
@@ -141,42 +116,220 @@ else:
     logging.error("Feature list is empty. Cannot proceed with model training.")
     sys.exit("Error: Feature list is empty.")
 
-# Initialize TensorFlow 2.x checkpointing
-checkpoint = tf.train.Checkpoint(model=model)
-checkpoint_manager = tf.train.CheckpointManager(checkpoint, directory='./checkpoints', max_to_keep=5)
+# Removed redundant checkpoint and checkpoint_manager definitions
 
 # Restore the latest checkpoint using TensorFlow 2.x checkpointing
+# Initialize the checkpoint manager for saving and loading model checkpoints
+checkpoint_prefix = './checkpoints/ckpt'
+checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
+checkpoint_manager = tf.train.CheckpointManager(checkpoint, directory=checkpoint_prefix, max_to_keep=5)
+
 if checkpoint_manager.latest_checkpoint:
     checkpoint.restore(checkpoint_manager.latest_checkpoint)
     print('Model restored from checkpoint at {}'.format(checkpoint_manager.latest_checkpoint))
+
+# Initialize lists to collect embeddings and labels from each batch
+all_embeddings = []
+all_labels = []
+
+# Removed TensorFlow 1.x session-related code and refactored for TensorFlow 2.x eager execution
+# The model's methods are now called directly without the need for a session
+
+# Placeholder for TensorFlow 2.x training loop
+# Initialize metrics to track the loss and accuracy
+train_loss = tf.keras.metrics.Mean(name='train_loss')
+train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
+
+# Training loop
+for epoch in range(nb_epochs):
+    start_time = time.time()
+
+    # Iterate over the batches of the dataset.
+    for step, (batch_features, batch_labels) in enumerate(train_dataset):
+        # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
+        with tf.GradientTape() as tape:
+            # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
+            logits, _, _ = model(batch_features, training=True)  # Logits for this minibatch
+
+            # Compute the loss value for this minibatch.
+            loss_value = loss_fn(batch_labels, logits)
+
+        # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
+        grads = tape.gradient(loss_value, model.trainable_weights)
+
+        # Run one step of gradient descent by updating the value of the variables to minimize the loss.
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+        # Update training metrics
+        train_loss(loss_value)
+        train_accuracy(batch_labels, logits)
+
+    # Log every 200 batches.
+    if step % 200 == 0:
+        print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, step, train_loss.result(), train_accuracy.result()))
+
+    # Reset training metrics at the end of each epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
+
+    # Save the model every 5 epochs
+    if (epoch + 1) % 5 == 0:
+        checkpoint.save(file_prefix=checkpoint_prefix)
+
+    print('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, train_loss.result(), train_accuracy.result()))
+    print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
+
+# Apply t-SNE visualization on the final embeddings
+# The visualization function is called directly with the final embeddings and the corresponding labels
+visualize_with_tsne(jhy_final_embedding, yy)
+
+# Training loop
+for epoch in range(nb_epochs):
+    start_time = time.time()
+
+    # Iterate over the batches of the dataset.
+    for step, (batch_features, batch_labels) in enumerate(train_dataset):
+        with tf.GradientTape() as tape:
+            logits, _, _ = model(batch_features, training=True)  # Logits for this minibatch
+            loss_value = loss_fn(batch_labels, logits)
+
+        grads = tape.gradient(loss_value, model.trainable_weights)
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+        # Update training metrics
+        train_loss(loss_value)
+        train_accuracy(batch_labels, logits)
+
+        # Collect embeddings and labels
+        all_embeddings.append(logits.numpy())
+        all_labels.append(batch_labels.numpy())
+
+    # Log every 200 batches.
+    if step % 200 == 0:
+        print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, step, train_loss.result(), train_accuracy.result()))
+
+    # Reset training metrics at the end of each epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
+
+    # Save the model every 5 epochs
+    if (epoch + 1) % 5 == 0:
+        checkpoint_manager.save()
+
+    print('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, train_loss.result(), train_accuracy.result()))
+    print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
+
+# Concatenate all embeddings and labels after training
+jhy_final_embedding = np.concatenate(all_embeddings, axis=0)
+yy = np.concatenate(all_labels, axis=0)
+
+# Uncomment the visualize_with_tsne function call to enable t-SNE visualization
+visualize_with_tsne(jhy_final_embedding, yy)
+
+# Assign the final embeddings to `jhy_final_embedding` and labels to `yy` after model training
+# For demonstration purposes, we use the output of the last training batch as the final embedding
+jhy_final_embedding = logits.numpy()
+yy = batch_labels.numpy()
+# Uncomment the visualize_with_tsne function call to enable t-SNE visualization
+visualize_with_tsne(jhy_final_embedding, yy)
+
+optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+
+loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+
+# Define the training dataset using the TensorFlow 2.x Dataset API
+train_dataset = tf.data.Dataset.from_tensor_slices((feature_vectors, y_train))
+train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size)
+
+# Initialize metrics to track the loss and accuracy
+train_loss = tf.keras.metrics.Mean(name='train_loss')
+train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
+
+# Placeholder for the training dataset
+# TODO: Define the training dataset using the TensorFlow 2.x Dataset API
+train_dataset = None
+
+# Placeholder for the loss function
+# TODO: Define the loss function appropriate for the classification task
+loss_fn = None
+
+# Placeholder for the optimizer
+# TODO: Define the optimizer for training the model
+optimizer = None
+
+# Placeholder for the checkpoint manager
+# TODO: Initialize the checkpoint manager for saving and loading model checkpoints
+checkpoint_prefix = './checkpoints/ckpt'
+checkpoint = tf.train.Checkpoint(model=model)
+checkpoint_manager = tf.train.CheckpointManager(checkpoint, directory=checkpoint_prefix, max_to_keep=5)
+
+# Training loop
+for epoch in range(nb_epochs):
+    start_time = time.time()
+
+    # Iterate over the batches of the dataset.
+    for step, (batch_features, batch_labels) in enumerate(train_dataset):
+        # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
+        with tf.GradientTape() as tape:
+            # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
+            logits, _, _ = model(batch_features, training=True)  # Logits for this minibatch
+
+            # Compute the loss value for this minibatch.
+            loss_value = loss_fn(batch_labels, logits)
+
+        # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
+        grads = tape.gradient(loss_value, model.trainable_weights)
+
+        # Run one step of gradient descent by updating the value of the variables to minimize the loss.
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+        # Update training metrics
+        train_loss(loss_value)
+        train_accuracy(batch_labels, logits)
+
+    # Log every 200 batches.
+    if step % 200 == 0:
+        print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, step, train_loss.result(), train_accuracy.result()))
+
+    # Reset training metrics at the end of each epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
+
+    # Save the model every 5 epochs
+    if (epoch + 1) % 5 == 0:
+        checkpoint_manager.save()
+
+    print('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, train_loss.result(), train_accuracy.result()))
+    print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
+
+
+# TODO: Assign the final embeddings to `jhy_final_embedding` and labels to `yy` after model training
+jhy_final_embedding = None  # Placeholder for final embeddings
+yy = None  # Placeholder for labels
+# visualize_with_tsne(jhy_final_embedding, yy) # This will be uncommented once `jhy_final_embedding` and `yy` are correctly assigned
+plt.figure(figsize=(10, 10))
+for class_id in np.unique(labels):
+    indices = labels == class_id
+    plt.scatter(tsne_results[indices, 0], tsne_results[indices, 1], label=str(class_id))
+plt.legend()
+plt.title('t-SNE visualization of embeddings')
+plt.xlabel('Component 1')
+plt.ylabel('Component 2')
+plt.show()
+
+# Removed TensorFlow 1.x session-related code and refactored for TensorFlow 2.x eager execution
+# The model's methods are now called directly without the need for a session
 
 # Training loop
 for epoch in range(nb_epochs):
     logging.debug("Starting epoch %d", epoch)
     # Placeholder for additional training loop code
 
-    # Log the shapes of logits and labels after they have been computed
-    # Removed the TensorFlow 1.x session.run calls and replaced with direct TensorFlow 2.x eager execution
-
-    # Evaluate and log the shapes of logits and labels after they have been computed
-    # Removed the TensorFlow 1.x session.run calls and replaced with direct TensorFlow 2.x eager execution
-
     # ... rest of the training loop code ...
 
 # Apply t-SNE visualization on the final embeddings
-def visualize_with_tsne(embeddings, labels):
-    tsne = TSNE(n_components=2, perplexity=30, n_iter=300)
-    tsne_results = tsne.fit_transform(embeddings)
-
-    plt.figure(figsize=(10, 10))
-    for class_id in np.unique(labels):
-        indices = labels == class_id
-        plt.scatter(tsne_results[indices, 0], tsne_results[indices, 1], label=str(class_id))
-    plt.legend()
-    plt.title('t-SNE visualization of embeddings')
-    plt.xlabel('Component 1')
-    plt.ylabel('Component 2')
-    plt.show()
+# The visualization function is called directly with the final embeddings and the corresponding labels
+visualize_with_tsne(jhy_final_embedding, yy)
 
 # Removed TensorFlow 1.x session blocks, placeholders, and initializers
 # Refactored the code to use TensorFlow 2.x Dataset API for input data handling
