@@ -124,7 +124,7 @@ optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
 
 # Define the training dataset using the TensorFlow 2.x Dataset API
-train_dataset = tf.data.Dataset.from_tensor_slices((feature_vectors, y_train))
+train_dataset = tf.data.Dataset.from_tensor_slices((feature_vectors_list, y_train))
 train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size)
 
 checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
