@@ -147,6 +147,20 @@ if checkpoint_manager.latest_checkpoint:
     checkpoint.restore(checkpoint_manager.latest_checkpoint)
     print('Model restored from checkpoint at {}'.format(checkpoint_manager.latest_checkpoint))
 
+# Generate bias matrices for each graph
+biases_list = [process.adj_to_bias(adj, nhood=1) for adj in rownetworks]
+
+# Training loop
+for epoch in range(nb_epochs):
+    start_time = time.time()
+
+    # Iterate over the batches of the dataset.
+    for step, (batch_features, batch_labels) in enumerate(train_dataset):
+        # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
+        with tf.GradientTape() as tape:
+            # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
+            logits, _, _ = model(batch_features, biases_list, training=True)  # Logits for this minibatch
+
 # TensorFlow 1.x session-related code blocks removed
 
 # Placeholder for TensorFlow 2.x training loop
