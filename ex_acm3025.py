@@ -149,6 +149,8 @@ if checkpoint_manager.latest_checkpoint:
 
 # Removed erroneous model call outside of the training loop that caused 'batch_features' NameError
 
+# Removed erroneous model call outside of the training loop that caused 'batch_features' NameError
+
 # Line removed to fix 'NameError' for 'batch_features'
 
 # Removed erroneous model call outside of the training loop that caused 'batch_features' NameError
