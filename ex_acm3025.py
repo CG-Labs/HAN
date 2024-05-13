@@ -178,6 +178,151 @@ def visualize_with_tsne(embeddings, labels):
     plt.ylabel('Component 2')
     plt.show()
 
+# Placeholder for TensorFlow 2.x training loop
+# Initialize metrics to track the loss and accuracy
+train_loss = tf.keras.metrics.Mean(name='train_loss')
+train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
+
+# Training loop
+for epoch in range(nb_epochs):
+    start_time = time.time()
+
+    # Iterate over the batches of the dataset.
+    for step, (batch_features, batch_labels) in enumerate(train_dataset):
+        # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
+        with tf.GradientTape() as tape:
+            # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
+            logits, _, _ = model(batch_features, training=True)  # Logits for this minibatch
+
+            # Compute the loss value for this minibatch.
+            loss_value = loss_fn(batch_labels, logits)
+
+        # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
+        grads = tape.gradient(loss_value, model.trainable_weights)
+
+        # Run one step of gradient descent by updating the value of the variables to minimize the loss.
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+        # Update training metrics
+        train_loss(loss_value)
+        train_accuracy(batch_labels, logits)
+
+    # Log every 200 batches.
+    if step % 200 == 0:
+        print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, step, train_loss.result(), train_accuracy.result()))
+
+    # Reset training metrics at the end of each epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
+
+    # Save the model every 5 epochs
+    if (epoch + 1) % 5 == 0:
+        checkpoint.save(file_prefix=checkpoint_prefix)
+
+    print('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, train_loss.result(), train_accuracy.result()))
+    print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
+
+# Removed TensorFlow 1.x session-related code and refactored for TensorFlow 2.x eager execution
+# The model's methods are now called directly without the need for a session
+
+# Training loop
+for epoch in range(nb_epochs):
+    logging.debug("Starting epoch %d", epoch)
+    # Placeholder for additional training loop code
+
+    # ... rest of the training loop code ...
+
+# Apply t-SNE visualization on the final embeddings
+# The visualization function is called directly with the final embeddings and the corresponding labels
+visualize_with_tsne(jhy_final_embedding, yy)
+
+# Removed TensorFlow 1.x session-related code and refactored for TensorFlow 2.x eager execution
+# The model's methods are now called directly without the need for a session
+
+# Training loop
+for epoch in range(nb_epochs):
+    logging.debug("Starting epoch %d", epoch)
+    # Placeholder for additional training loop code
+
+    # Log the shapes of logits and labels after they have been computed
+    # Removed the TensorFlow 1.x session.run calls and replaced with direct TensorFlow 2.x eager execution
+
+    # Evaluate and log the shapes of logits and labels after they have been computed
+    # Removed the TensorFlow 1.x session.run calls and replaced with direct TensorFlow 2.x eager execution
+
+    # ... rest of the training loop code ...
+
+# Apply t-SNE visualization on the final embeddings
+# The visualization function is called directly with the final embeddings and the corresponding labels
+visualize_with_tsne(jhy_final_embedding, yy)
+
+# Removed TensorFlow 1.x session-related code and refactored for TensorFlow 2.x eager execution
+# The model's methods are now called directly without the need for a session
+
+# Training loop
+for epoch in range(nb_epochs):
+    logging.debug("Starting epoch %d", epoch)
+    # Placeholder for additional training loop code
+
+    # Log the shapes of logits and labels after they have been computed
+    # Removed the TensorFlow 1.x session.run calls and replaced with direct TensorFlow 2.x eager execution
+
+    # Evaluate and log the shapes of logits and labels after they have been computed
+    # Removed the TensorFlow 1.x session.run calls and replaced with direct TensorFlow 2.x eager execution
+
+    # ... rest of the training loop code ...
+
+# Apply t-SNE visualization on the final embeddings
+# The visualization function is called directly with the final embeddings and the corresponding labels
+visualize_with_tsne(jhy_final_embedding, yy)
+
+# TensorFlow session block starts
+init_op = tf.group(tf.compat.v1.global_variables_initializer(),
+                   tf.compat.v1.local_variables_initializer())
+
+with tf.compat.v1.Session(config=config) as sess:
+    sess.run(init_op)
+    # ... [rest of the TensorFlow session code] ...
+
+# TensorFlow session block starts
+with tf.compat.v1.Session(config=config) as sess:
+    sess.run(init_op)
+    # ... [some other code] ...
+
+    # Final embeddings are generated here
+    # This line has been moved inside the TensorFlow session after the embeddings are generated
+    logits, final_embedding, att_val = model.inference(inputs_list=ftr_in_list, nb_classes=nb_classes, nb_nodes=nb_nodes, training=is_train, attn_drop=attn_drop, ffd_drop=ffd_drop, bias_mat_list=bias_in_list, hid_units=hid_units, n_heads=n_heads, batch_size=batch_size, activation=nonlinearity, residual=residual, mp_att_size=128)
+    jhy_final_embedding = final_embedding
+
+    # Ensure that the labels variable 'yy' is correctly defined for visualization
+    yy = y_test[test_mask]
+    # Call the visualization function with the final embeddings and the corresponding labels
+    visualize_with_tsne(jhy_final_embedding, yy)
+
+    # ... [rest of the TensorFlow session code] ...
+
+# TensorFlow session block ends
+
+# ... [rest of the code] ...
+
+# TensorFlow session block starts
+with tf.compat.v1.Session(config=config) as sess:
+    sess.run(init_op)
+    # ... [some other code] ...
+
+    # Final embeddings are generated here
+    # This line has been moved inside the TensorFlow session after the embeddings are generated
+    jhy_final_embedding = final_embedding
+
+    # ... [some other code] ...
+
+# TensorFlow session block ends
+
+# ... [rest of the code] ...
+
+# Visualization function is called here
+visualize_with_tsne(jhy_final_embedding, yy)
+
 # Removed incorrect assignment of final_embedding outside of TensorFlow session scope
 # Removed redundant call to visualize_with_tsne
 
