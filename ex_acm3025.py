@@ -180,6 +180,8 @@ def visualize_with_tsne(embeddings, labels):
 
 # Removed incorrect assignment of final_embedding outside of TensorFlow session scope
 
+# Removed incorrect assignment of final_embedding outside of TensorFlow session scope
+
 # Assign the final embedding output from the model to jhy_final_embedding
 jhy_final_embedding = final_embedding
 visualize_with_tsne(jhy_final_embedding, yy)
