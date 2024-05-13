@@ -178,6 +178,12 @@ def visualize_with_tsne(embeddings, labels):
     plt.ylabel('Component 2')
     plt.show()
 
+# Removed incorrect assignment of final_embedding outside of TensorFlow session scope
+
+# Assign the final embedding output from the model to jhy_final_embedding
+jhy_final_embedding = final_embedding
+visualize_with_tsne(jhy_final_embedding, yy)
+
 # visualize_with_tsne(jhy_final_embedding, yy) # Removed redundant call to visualize_with_tsne
 
 # Call the visualization function with the final embeddings and the corresponding labels
@@ -426,14 +432,12 @@ with tf.Graph().as_default():
         ts_acc = 0.0
 
         while ts_step * batch_size < ts_size:
-            # fd1 = {ftr_in: features[ts_step * batch_size:(ts_step + 1) * batch_size]}
             fd1 = {i: d[ts_step * batch_size:(ts_step + 1) * batch_size]
                    for i, d in zip(ftr_in_list, fea_list)}
             fd2 = {i: d[ts_step * batch_size:(ts_step + 1) * batch_size]
                    for i, d in zip(bias_in_list, biases_list)}
             fd3 = {lbl_in: y_test[ts_step * batch_size:(ts_step + 1) * batch_size],
                    msk_in: test_mask[ts_step * batch_size:(ts_step + 1) * batch_size],
-
                    is_train: False,
                    attn_drop: 0.0,
                    ffd_drop: 0.0}
@@ -450,35 +454,9 @@ with tf.Graph().as_default():
         print('Test loss:', ts_loss / ts_step,
               '; Test accuracy:', ts_acc / ts_step)
 
-        print('start knn, kmean.....')
-        xx = np.expand_dims(jhy_final_embedding, axis=0)[test_mask]
-
-        from numpy import linalg as LA
-
-        # xx = xx / LA.norm(xx, axis=1)
+        # Assign the final embedding output from the model to jhy_final_embedding
+        # Ensure that the labels variable 'yy' is correctly defined for visualization
         yy = y_test[test_mask]
-
-        print('xx: {}, yy: {}'.format(xx.shape, yy.shape))
-        from jhyexps import my_KNN, my_Kmeans#, my_TSNE, my_Linear
-
-        my_KNN(xx, yy)
-        my_Kmeans(xx, yy)
-
-        # Apply t-SNE visualization on the final embeddings
-        def visualize_with_tsne(embeddings, labels):
-            tsne = TSNE(n_components=2, perplexity=30, n_iter=300)
-            tsne_results = tsne.fit_transform(embeddings)
-
-            plt.figure(figsize=(10, 10))
-            for class_id in np.unique(labels):
-                indices = labels == class_id
-                plt.scatter(tsne_results[indices, 0], tsne_results[indices, 1], label=str(class_id))
-            plt.legend()
-            plt.title('t-SNE visualization of embeddings')
-            plt.xlabel('Component 1')
-            plt.ylabel('Component 2')
-            plt.show()
-
         # Call the visualization function with the final embeddings and the corresponding labels
         visualize_with_tsne(jhy_final_embedding, yy)
 
