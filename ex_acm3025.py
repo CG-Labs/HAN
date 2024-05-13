@@ -149,6 +149,8 @@ if checkpoint_manager.latest_checkpoint:
 
 # Removed erroneous model call outside of training loop
 
+# Removed erroneous model call outside of training loop
+
 # ... (lines in between that are not shown and should not be modified)
 
 # Inside the training loop
