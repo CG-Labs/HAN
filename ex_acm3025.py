@@ -149,6 +149,60 @@ if checkpoint_manager.latest_checkpoint:
 
 # Removed erroneous model call outside of the training loop that caused 'batch_features' NameError
 
+logits, _, _ = model(batch_features, biases_list, ffd_drop=ffd_drop, attn_drop=attn_drop, training=True)  # Logits for this minibatch
+
+# Removed erroneous model call outside of the training loop that caused 'batch_features' NameError
+
+# Define default feature feed-forward dropout rate
+ffd_drop = 0.6
+
+# Define default attention dropout rate
+attn_drop = 0.6
+
+# Generate bias matrices for each graph
+biases_list = [process.adj_to_bias(adj, nhood=1) for adj in rownetworks]
+
+# Training loop
+for epoch in range(nb_epochs):
+    start_time = time.time()
+
+    # Iterate over the batches of the dataset.
+    for step, (batch_features, batch_labels) in enumerate(train_dataset):
+        # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
+        with tf.GradientTape() as tape:
+            # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
+            logits, _, _ = model(batch_features, biases_list, attn_drop=attn_drop, training=True)  # Logits for this minibatch
+
+            # Compute the loss value for this minibatch.
+            loss_value = loss_fn(batch_labels, logits)
+
+        # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
+        grads = tape.gradient(loss_value, model.trainable_weights)
+
+        # Run one step of gradient descent by updating the value of the variables to minimize the loss.
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+        # Update training metrics
+        train_loss(loss_value)
+        train_accuracy(batch_labels, logits)
+
+    # Log every 200 batches.
+    if step % 200 == 0:
+        print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, step, train_loss.result(), train_accuracy.result()))
+
+    # Reset training metrics at the end of each epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
+
+    # Save the model every 5 epochs
+    if (epoch + 1) % 5 == 0:
+        checkpoint.save(file_prefix=checkpoint_prefix)
+
+    print('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, train_loss.result(), train_accuracy.result()))
+    print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
+
+# Removed erroneous model call outside of the training loop that caused 'batch_features' NameError
+
 # Removed erroneous model call outside of the training loop that caused 'batch_features' NameError
 
 # Removed erroneous model call outside of the training loop that caused 'batch_features' NameError
