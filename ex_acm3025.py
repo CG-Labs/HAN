@@ -147,6 +147,9 @@ if checkpoint_manager.latest_checkpoint:
     checkpoint.restore(checkpoint_manager.latest_checkpoint)
     print('Model restored from checkpoint at {}'.format(checkpoint_manager.latest_checkpoint))
 
+# Define default attention dropout rate
+attn_drop = 0.6
+
 # Generate bias matrices for each graph
 biases_list = [process.adj_to_bias(adj, nhood=1) for adj in rownetworks]
 
