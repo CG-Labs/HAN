@@ -147,6 +147,16 @@ if checkpoint_manager.latest_checkpoint:
     checkpoint.restore(checkpoint_manager.latest_checkpoint)
     print('Model restored from checkpoint at {}'.format(checkpoint_manager.latest_checkpoint))
 
+# ... (lines in between that are not shown and should not be modified)
+
+# Inside the training loop
+logits, _, _ = model(batch_features, biases_list, attn_drop=attn_drop, ffd_drop=ffd_drop, training=True)  # Logits for this minibatch
+
+# ... (rest of the file that is not shown and should not be modified)
+
+# Define default feature feed-forward dropout rate
+ffd_drop = 0.6
+
 # Define default attention dropout rate
 attn_drop = 0.6
 
