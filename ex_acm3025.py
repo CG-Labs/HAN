@@ -147,6 +147,13 @@ if checkpoint_manager.latest_checkpoint:
     checkpoint.restore(checkpoint_manager.latest_checkpoint)
     print('Model restored from checkpoint at {}'.format(checkpoint_manager.latest_checkpoint))
 
+# Assign the final embedding output from the model to jhy_final_embedding
+jhy_final_embedding = final_embedding.numpy()
+# Ensure that the labels variable 'yy' is correctly defined for visualization
+yy = y_test[test_mask].numpy()
+# Call the visualization function with the final embeddings and the corresponding labels
+visualize_with_tsne(jhy_final_embedding, yy)
+
 # Aggregate feature vectors into a batch for model input
 batch_features = np.array(feature_vectors_list)
 
