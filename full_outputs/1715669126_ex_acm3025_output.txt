@@ -1,0 +1,12 @@
+model: pre_trained/acm/acm_allMP_multi_fea_.ckpt
+Dataset: acm
+----- Opt. hyperparams -----
+lr: 0.005
+l2_coef: 0.001
+----- Archi. hyperparams -----
+nb. layers: 1
+nb. units per layer: [8]
+nb. attention heads: [8, 1]
+residual: False
+nonlinearity: <function elu at 0x7f9479254820>
+Length of feature_vectors: 6
