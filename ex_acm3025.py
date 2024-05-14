@@ -147,6 +147,12 @@ if checkpoint_manager.latest_checkpoint:
     checkpoint.restore(checkpoint_manager.latest_checkpoint)
     print('Model restored from checkpoint at {}'.format(checkpoint_manager.latest_checkpoint))
 
+# Check if all_embeddings is populated before attempting to concatenate
+if not all_embeddings:
+    logging.error("all_embeddings is empty. Cannot proceed with concatenation and visualization.")
+    sys.exit("Error: all_embeddings is empty.")
+jhy_final_embedding = np.concatenate(all_embeddings, axis=0)
+
 # After the training loop, concatenate all embeddings and labels
 jhy_final_embedding = np.concatenate(all_embeddings, axis=0)
 yy = np.concatenate(all_labels, axis=0)
