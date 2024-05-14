@@ -144,6 +144,10 @@ all_labels = []
 # Generate bias matrices for each graph and log their shapes for verification
 biases_list = []
 
+# Metrics reset calls removed
+
+# Metrics reset calls removed from here
+
 train_loss.reset_state()
 train_accuracy.reset_state()
 
