@@ -120,8 +120,12 @@ checkpoint_prefix = './checkpoints/ckpt'
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
 
+# Convert feature_vectors_list to a 3D tensor with shape [batch_size, nb_nodes, ft_size]
+# where batch_size is the length of feature_vectors_list, ensuring each feature vector
+# is reshaped to [nb_nodes, ft_size] before stacking.
+feature_vectors_tensor = tf.stack([tf.reshape(fv, (nb_nodes, ft_size)) for fv in feature_vectors_list], axis=0)
 # Define the training dataset using the TensorFlow 2.x Dataset API
-train_dataset = tf.data.Dataset.from_tensor_slices((feature_vectors_list, y_train))
+train_dataset = tf.data.Dataset.from_tensor_slices((feature_vectors_tensor, y_train))
 train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size)
 
 checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
@@ -135,13 +139,37 @@ if checkpoint_manager.latest_checkpoint:
 all_embeddings = []
 all_labels = []
 
-# Removed redundant checkpoint restoration code to prevent potential interference with the training loop
+# Initialize metrics to track the loss and accuracy
+train_loss = tf.keras.metrics.Mean(name='train_loss')
+train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
+
+# Training loop
+for epoch in range(nb_epochs):
+    # Reset the metrics at the start of the next epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
+    # ... rest of the training loop code ...
 
 checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
 checkpoint_manager = tf.train.CheckpointManager(checkpoint, directory=checkpoint_prefix, max_to_keep=5)
 
 # Generate bias matrices for each graph and log their shapes for verification
 biases_list = []
+
+# Iterate over the batches of the dataset.
+for step, (batch_features, batch_labels) in enumerate(train_dataset):
+    with tf.GradientTape() as tape:
+        # Ensure batch_features is a 3-dimensional tensor with the shape [batch_size, nb_nodes, ft_size]
+        if len(batch_features.shape) != 3 or batch_features.shape[1] != nb_nodes or batch_features.shape[2] != ft_size:
+            # Reshape to [batch_size, nb_nodes, ft_size] if batch_features does not have the correct shape
+            batch_features = tf.reshape(batch_features, [-1, nb_nodes, ft_size])
+            if tf.shape(batch_features)[0] != batch_size:
+                logging.error("batch_features has an unexpected batch size: %s", tf.shape(batch_features)[0])
+                continue  # Skip this batch to prevent model call with incorrect input shape
+        # Forward pass through the model
+        logits, _, _ = model(batch_features, biases_list, training=True, attn_drop=attn_drop, ffd_drop=ffd_drop)
+        # Compute loss
+        loss_value = loss_fn(batch_labels, logits)
 for adj in rownetworks:
     bias = process.adj_to_bias(adj, nhood=1)
     biases_list.append(bias)
@@ -162,12 +190,21 @@ for epoch in range(nb_epochs):
     # Iterate over the batches of the dataset.
     for step, (batch_features, batch_labels) in enumerate(train_dataset):
         with tf.GradientTape() as tape:
-            # Ensure batch_features tensor has the correct shape [batch_size, nb_nodes, ft_size]
+            # Ensure batch_features is a 3-dimensional tensor with the shape [batch_size, nb_nodes, ft_size]
             if len(batch_features.shape) == 2:
-                batch_features = tf.reshape(batch_features, [batch_size, -1, ft_size])
-            elif len(batch_features.shape) == 3 and batch_features.shape[1] == 1:
-                batch_features = tf.reshape(batch_features, [batch_size, nb_nodes, ft_size])
-            logits, _, _ = model(batch_features, biases_list, training=True, attn_drop=attn_drop, ffd_drop=ffd_drop)  # Logits for this minibatch
+                # Reshape to [1, nb_nodes, ft_size] if batch_features is 2-dimensional
+                batch_features = tf.reshape(batch_features, [1, nb_nodes, ft_size])
+            elif len(batch_features.shape) == 3 and (batch_features.shape[1] != nb_nodes or batch_features.shape[2] != ft_size):
+                # If batch_features is already 3-dimensional but does not have the correct shape, reshape it
+                batch_features = tf.reshape(batch_features, [1, nb_nodes, ft_size])
+            else:
+                # If batch_features is not 2-dimensional or 3-dimensional with incorrect shape, log an error
+                logging.error("batch_features has an unexpected shape: %s", batch_features.shape)
+                continue  # Skip this batch to prevent model call with incorrect input shape
+
+            # Forward pass through the model
+            logits, _, _ = model(batch_features, biases_list, training=True, attn_drop=attn_drop, ffd_drop=ffd_drop)
+            # Compute loss
             loss_value = loss_fn(batch_labels, logits)
 
         grads = tape.gradient(loss_value, model.trainable_weights)
@@ -197,9 +234,43 @@ for epoch in range(nb_epochs):
     print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
 
 # Check if all_embeddings is populated before attempting to concatenate
-if not all_embeddings:
-    logging.error("all_embeddings is empty. Cannot proceed with concatenation and visualization.")
-    sys.exit("Error: all_embeddings is empty.")
+# Initialize metrics to track the loss and accuracy
+train_loss = tf.keras.metrics.Mean(name='train_loss')
+train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
+
+# Training loop
+for epoch in range(nb_epochs):
+    # Reset the metrics at the start of the next epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
+
+    for step, (batch_features, batch_labels) in enumerate(train_dataset):
+        # Check if batch_features needs reshaping
+        if len(batch_features.shape) == 2:
+            batch_features = tf.reshape(batch_features, [1, nb_nodes, ft_size])
+        elif len(batch_features.shape) == 3:
+            if batch_features.shape[1] != nb_nodes or batch_features.shape[2] != ft_size:
+                logging.error(f"batch_features shape mismatch: {batch_features.shape} != (1, {nb_nodes}, {ft_size})")
+                continue
+            # If the shape is correct, proceed without changes
+        else:
+            logging.error(f"Invalid batch_features shape: {batch_features.shape}")
+            continue
+
+        with tf.GradientTape() as tape:
+            logits = model(batch_features, training=True)
+            loss_value = loss_fn(batch_labels, logits)
+
+        grads = tape.gradient(loss_value, model.trainable_weights)
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+        train_loss.update_state(loss_value)
+        train_accuracy.update_state(batch_labels, logits)
+
+    print('Epoch {}, Loss: {}, Accuracy: {}'.format(epoch+1, train_loss.result(), train_accuracy.result()*100))
+    # End of epoch, reset states
+    train_loss.reset_states()
+    train_accuracy.reset_states()
 
 # Aggregate feature vectors into a batch for model input
 # Stack the feature vectors vertically to create a single 2D array
