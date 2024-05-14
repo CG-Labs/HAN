@@ -147,6 +147,13 @@ if checkpoint_manager.latest_checkpoint:
     checkpoint.restore(checkpoint_manager.latest_checkpoint)
     print('Model restored from checkpoint at {}'.format(checkpoint_manager.latest_checkpoint))
 
+logits, _, _ = model(batch_features, biases_list, ffd_drop=ffd_drop, attn_drop=attn_drop, training=True)  # Logits for this minibatch
+
+logits, _, _ = model(batch_features, biases_list, ffd_drop=ffd_drop, attn_drop=attn_drop, training=True)  # Logits for this minibatch
+
+# Aggregate feature vectors into a batch for model input
+batch_features = np.array(feature_vectors_list)
+
 # logits, _, _ = model(batch_features, biases_list, ffd_drop=ffd_drop, attn_drop=attn_drop, training=True)  # Commented out to fix 'NameError' for 'batch_features'
 
 # logits, _, _ = model(batch_features, biases_list, ffd_drop=ffd_drop, attn_drop=attn_drop, training=True)  # Commented out to fix 'NameError' for 'batch_features'
