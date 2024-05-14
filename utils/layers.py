@@ -9,7 +9,24 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
             seq = tf.nn.dropout(seq, 1.0 - in_drop)
-        seq = tf.expand_dims(seq, axis=1)  # Add a sequence length dimension
+        # Ensure seq is 3-dimensional
+        seq_shape = tf.shape(seq)
+        # Assert that the input tensor seq has a rank of 3
+        tf.debugging.assert_equal(tf.rank(seq), 3, message='Input tensor seq must be 3-dimensional')
+        # Assuming the input tensor seq has a shape of (batch_size, 1, num_features)
+        num_features = seq_shape[-1]  # Get the number of features from the last dimension of seq
+        num_nodes = bias_mat.shape[0]  # Assume the number of nodes is the first dimension of bias_mat
+        # Calculate the padding needed to make num_features divisible by num_nodes
+        padding_size = num_nodes - (num_features % num_nodes) if num_features % num_nodes != 0 else 0
+        # Pad the sequence with zeros on the last dimension if padding is needed
+        seq = tf.pad(seq, [[0, 0], [0, 0], [0, padding_size]], 'CONSTANT') if padding_size > 0 else seq
+        # Update num_features to include padding
+        num_features += padding_size
+        # Calculate the size of features for each node
+        feature_size = num_features // num_nodes
+        # Reshape seq to have three dimensions: (batch_size, num_nodes, feature_size)
+        seq = tf.reshape(seq, (seq_shape[0], num_nodes, feature_size))
+        # Rest of the function remains unchanged
         seq_fts = conv1d(out_sz, 1, use_bias=False)(seq)
 
         f_1 = conv1d(1, 1)(seq_fts)
