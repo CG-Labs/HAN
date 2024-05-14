@@ -144,6 +144,14 @@ all_labels = []
 # Generate bias matrices for each graph and log their shapes for verification
 biases_list = []
 
+# Initialize metrics to track the loss and accuracy
+train_loss = tf.keras.metrics.Mean(name='train_loss')
+train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
+
+# Reset the metrics at the start of the next epoch
+train_loss.reset_state()
+train_accuracy.reset_state()
+
 train_loss.reset_state()
 train_accuracy.reset_state()
 
