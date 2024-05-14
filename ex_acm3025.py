@@ -141,9 +141,54 @@ checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
 checkpoint_manager = tf.train.CheckpointManager(checkpoint, directory=checkpoint_prefix, max_to_keep=5)
 
 # Check if all_embeddings is populated before attempting to concatenate
+# Training loop
+for epoch in range(nb_epochs):
+    logging.debug("Starting epoch %d", epoch)
+    start_time = time.time()
+
+    # Iterate over the batches of the dataset.
+    for step, (batch_features, batch_labels) in enumerate(train_dataset):
+        with tf.GradientTape() as tape:
+            logits, _, _ = model(batch_features, biases_list, training=True)  # Logits for this minibatch
+            loss_value = loss_fn(batch_labels, logits)
+
+        grads = tape.gradient(loss_value, model.trainable_weights)
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+        # Update training metrics
+        train_loss(loss_value)
+        train_accuracy(batch_labels, logits)
+
+        # Collect embeddings and labels
+        all_embeddings.append(logits.numpy())
+        all_labels.append(batch_labels.numpy())
+
+    # Log every 200 batches.
+    if step % 200 == 0:
+        print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, step, train_loss.result(), train_accuracy.result()))
+
+    # Reset training metrics at the end of each epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
+
+    # Save the model every 5 epochs
+    if (epoch + 1) % 5 == 0:
+        checkpoint_manager.save()
+
+    print('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, train_loss.result(), train_accuracy.result()))
+    print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
+
+# Check if all_embeddings is populated before attempting to concatenate
 if not all_embeddings:
     logging.error("all_embeddings is empty. Cannot proceed with concatenation and visualization.")
     sys.exit("Error: all_embeddings is empty.")
+
+# Concatenate all embeddings and labels after training
+jhy_final_embedding = np.concatenate(all_embeddings, axis=0)
+yy = np.concatenate(all_labels, axis=0)
+
+# Apply t-SNE visualization on the final embeddings
+visualize_with_tsne(jhy_final_embedding, yy)
 
 # Collect embeddings and labels
 all_embeddings.append(logits.numpy())
