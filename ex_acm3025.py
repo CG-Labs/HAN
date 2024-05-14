@@ -163,7 +163,10 @@ for epoch in range(nb_epochs):
     for step, (batch_features, batch_labels) in enumerate(train_dataset):
         with tf.GradientTape() as tape:
             # Ensure batch_features tensor has the correct shape [batch_size, nb_nodes, ft_size]
-            batch_features = tf.reshape(batch_features, [batch_size, -1, ft_size])
+            if len(batch_features.shape) == 2:
+                batch_features = tf.reshape(batch_features, [batch_size, -1, ft_size])
+            elif len(batch_features.shape) == 3 and batch_features.shape[1] == 1:
+                batch_features = tf.reshape(batch_features, [batch_size, nb_nodes, ft_size])
             logits, _, _ = model(batch_features, biases_list, training=True, attn_drop=attn_drop, ffd_drop=ffd_drop)  # Logits for this minibatch
             loss_value = loss_fn(batch_labels, logits)
 
