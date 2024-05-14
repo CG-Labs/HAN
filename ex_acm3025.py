@@ -144,6 +144,15 @@ all_labels = []
 # Generate bias matrices for each graph and log their shapes for verification
 biases_list = []
 
+train_loss.reset_state()
+train_accuracy.reset_state()
+
+train_loss.reset_state()
+train_accuracy.reset_state()
+
+train_loss.reset_state()
+train_accuracy.reset_state()
+
 # End of script
 
 # Initialize metrics to track the loss and accuracy
