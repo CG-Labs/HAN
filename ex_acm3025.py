@@ -140,7 +140,14 @@ all_labels = []
 checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
 checkpoint_manager = tf.train.CheckpointManager(checkpoint, directory=checkpoint_prefix, max_to_keep=5)
 
-# Check if all_embeddings is populated before attempting to concatenate
+# Generate bias matrices for each graph
+biases_list = [process.adj_to_bias(adj, nhood=1) for adj in rownetworks]
+
+# Define default attention dropout rate
+attn_drop = 0.6
+# Define default feature feed-forward dropout rate
+ffd_drop = 0.6
+
 # Training loop
 for epoch in range(nb_epochs):
     logging.debug("Starting epoch %d", epoch)
@@ -149,7 +156,7 @@ for epoch in range(nb_epochs):
     # Iterate over the batches of the dataset.
     for step, (batch_features, batch_labels) in enumerate(train_dataset):
         with tf.GradientTape() as tape:
-            logits, _, _ = model(batch_features, biases_list, training=True)  # Logits for this minibatch
+            logits, _, _ = model(batch_features, biases_list, training=True, attn_drop=attn_drop, ffd_drop=ffd_drop)  # Logits for this minibatch
             loss_value = loss_fn(batch_labels, logits)
 
         grads = tape.gradient(loss_value, model.trainable_weights)
@@ -179,12 +186,17 @@ for epoch in range(nb_epochs):
     print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
 
 # Check if all_embeddings is populated before attempting to concatenate
-# Generate bias matrices for each graph
-biases_list = [process.adj_to_bias(adj, nhood=1) for adj in rownetworks]
-
 if not all_embeddings:
     logging.error("all_embeddings is empty. Cannot proceed with concatenation and visualization.")
     sys.exit("Error: all_embeddings is empty.")
+
+# Aggregate feature vectors into a batch for model input
+# Stack the feature vectors vertically to create a single 2D array
+batch_features = np.vstack(feature_vectors_list)
+
+# Aggregate feature vectors into a batch for model input
+# Stack the feature vectors vertically to create a single 2D array
+batch_features = np.vstack(feature_vectors_list)
 
 # Concatenate all embeddings and labels after training
 jhy_final_embedding = np.concatenate(all_embeddings, axis=0)

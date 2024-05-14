@@ -9,6 +9,7 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
             seq = tf.nn.dropout(seq, 1.0 - in_drop)
+        seq = tf.expand_dims(seq, axis=1)  # Add a sequence length dimension
         seq_fts = conv1d(out_sz, 1, use_bias=False)(seq)
 
         f_1 = conv1d(1, 1)(seq_fts)
@@ -20,6 +21,11 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         coefs = tf.debugging.check_numerics(coefs, "coefs after softmax contains NaN or Inf")
         coefs_non_zero = tf.math.count_nonzero(coefs)
         tf.debugging.assert_positive(coefs_non_zero, message="Attention coefficients (coefs) are all zeros after softmax")
+
+        # Reshape seq_fts to be a 2D tensor for matrix multiplication
+        seq_fts = tf.squeeze(seq_fts, axis=1)
+        # Reshape coefs to be a 2D tensor for matrix multiplication
+        coefs = tf.squeeze(coefs, axis=0)
 
         vals = tf.matmul(coefs, seq_fts)
         vals = tf.debugging.check_numerics(vals, "vals after matmul contains NaN or Inf")
@@ -51,6 +57,7 @@ def attn_head_const_1(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
             seq = tf.nn.dropout(seq, 1.0 - in_drop)
+        seq = tf.expand_dims(seq, axis=1)  # Add a sequence length dimension
         seq_fts = conv1d(out_sz, 1, use_bias=False)(seq)
 
         logits = adj_mat
