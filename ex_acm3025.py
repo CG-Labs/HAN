@@ -179,6 +179,9 @@ for epoch in range(nb_epochs):
     print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
 
 # Check if all_embeddings is populated before attempting to concatenate
+# Generate bias matrices for each graph
+biases_list = [process.adj_to_bias(adj, nhood=1) for adj in rownetworks]
+
 if not all_embeddings:
     logging.error("all_embeddings is empty. Cannot proceed with concatenation and visualization.")
     sys.exit("Error: all_embeddings is empty.")
