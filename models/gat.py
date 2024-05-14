@@ -46,6 +46,8 @@ class HeteGAT_multi(tf.keras.Model):
     def call(self, inputs_list, bias_mat_list, training, attn_drop, ffd_drop):
         embed_list = []
         for inputs, bias_mat in zip(inputs_list, bias_mat_list):
+            # Ensure inputs is a 2D tensor by removing any singleton dimensions
+            inputs = tf.squeeze(inputs)
             attns = []
             for _ in range(self.n_heads[0]):
                 attns.append(layers.attn_head(inputs, bias_mat=bias_mat,
