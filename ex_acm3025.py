@@ -150,6 +150,9 @@ if checkpoint_manager.latest_checkpoint:
 # Commented out to fix 'NameError' for 'batch_features' as it is not defined outside the training loop
 # logits, _, _ = model(batch_features, biases_list, ffd_drop=ffd_drop, attn_drop=attn_drop, training=True)  # Logits for this minibatch
 
+# Commented out to fix 'NameError' for 'batch_features' as it is not defined outside the training loop
+# logits, _, _ = model(batch_features, biases_list, ffd_drop=ffd_drop, attn_drop=attn_drop, training=True)  # Logits for this minibatch
+
 # logits, _, _ = model(batch_features, biases_list, ffd_drop=ffd_drop, attn_drop=attn_drop, training=True)  # Commented out to fix 'NameError' for 'batch_features'
 
 # logits, _, _ = model(batch_features, biases_list, ffd_drop=ffd_drop, attn_drop=attn_drop, training=True)  # Commented out to fix 'NameError' for 'batch_features'
