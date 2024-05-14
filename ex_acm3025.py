@@ -140,8 +140,14 @@ all_labels = []
 checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
 checkpoint_manager = tf.train.CheckpointManager(checkpoint, directory=checkpoint_prefix, max_to_keep=5)
 
-# Generate bias matrices for each graph
-biases_list = [process.adj_to_bias(adj, nhood=1) for adj in rownetworks]
+# Generate bias matrices for each graph and log their shapes for verification
+biases_list = []
+for adj in rownetworks:
+    bias = process.adj_to_bias(adj, nhood=1)
+    biases_list.append(bias)
+    # Log the shape of the original adjacency matrix and the bias matrix
+    logging.debug("Shape of original adjacency matrix: %s", adj.shape)
+    logging.debug("Shape of bias matrix after adj_to_bias: %s", bias.shape)
 
 # Define default attention dropout rate
 attn_drop = 0.6
@@ -158,8 +164,6 @@ for epoch in range(nb_epochs):
         with tf.GradientTape() as tape:
             # Ensure batch_features tensor has the correct shape [batch_size, nb_nodes, ft_size]
             batch_features = tf.reshape(batch_features, [batch_size, -1, ft_size])
-            # Ensure biases_list is a list of tensors with shape [batch_size, nb_nodes, nb_nodes]
-            biases_list = [tf.reshape(bias, [batch_size, nb_nodes, nb_nodes]) for bias in biases_list]
             logits, _, _ = model(batch_features, biases_list, training=True, attn_drop=attn_drop, ffd_drop=ffd_drop)  # Logits for this minibatch
             loss_value = loss_fn(batch_labels, logits)
 
