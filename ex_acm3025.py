@@ -21,6 +21,8 @@ config.gpu_options.allow_growth = True
 # Set up logging at the start to capture all messages
 logging.basicConfig(filename='debug.log', level=logging.DEBUG, filemode='w', format='%(asctime)s - %(levelname)s - %(message)s')
 
+print("TensorFlow version:", tf.__version__)
+
 dataset = 'acm'
 featype = 'fea'
 checkpt_file = 'pre_trained/{}/{}_allMP_multi_{}_.ckpt'.format(dataset, dataset, featype)
@@ -139,15 +141,8 @@ if checkpoint_manager.latest_checkpoint:
 all_embeddings = []
 all_labels = []
 
-# Initialize metrics to track the loss and accuracy
-train_loss = tf.keras.metrics.Mean(name='train_loss')
-train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
-
 # Training loop
 for epoch in range(nb_epochs):
-    # Reset the metrics at the start of the next epoch
-    train_loss.reset_states()
-    train_accuracy.reset_states()
     # ... rest of the training loop code ...
 
 checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
@@ -221,10 +216,6 @@ for epoch in range(nb_epochs):
     # Log every 200 batches.
     if step % 200 == 0:
         print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, step, train_loss.result(), train_accuracy.result()))
-
-    # Reset training metrics at the end of each epoch
-    train_loss.reset_states()
-    train_accuracy.reset_states()
 
     # Save the model every 5 epochs
     if (epoch + 1) % 5 == 0:
@@ -336,111 +327,6 @@ for epoch in range(nb_epochs):
         with tf.GradientTape() as tape:
             # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
             logits, _, _ = model(batch_features, biases_list, attn_drop=attn_drop, training=True)  # Logits for this minibatch
-
-            # Compute the loss value for this minibatch.
-            loss_value = loss_fn(batch_labels, logits)
-
-        # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
-        grads = tape.gradient(loss_value, model.trainable_weights)
-
-        # Run one step of gradient descent by updating the value of the variables to minimize the loss.
-        optimizer.apply_gradients(zip(grads, model.trainable_weights))
-
-        # Update training metrics
-        train_loss(loss_value)
-        train_accuracy(batch_labels, logits)
-
-    # Log every 200 batches.
-    if step % 200 == 0:
-        print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, step, train_loss.result(), train_accuracy.result()))
-
-    # Reset training metrics at the end of each epoch
-    train_loss.reset_states()
-    train_accuracy.reset_states()
-
-    # Save the model every 5 epochs
-    if (epoch + 1) % 5 == 0:
-        checkpoint.save(file_prefix=checkpoint_prefix)
-
-    print('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, train_loss.result(), train_accuracy.result()))
-    print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
-
-# Apply t-SNE visualization on the final embeddings
-# The visualization function is called directly with the final embeddings and the corresponding labels
-visualize_with_tsne(jhy_final_embedding, yy)
-
-# Training loop
-for epoch in range(nb_epochs):
-    start_time = time.time()
-
-    # Iterate over the batches of the dataset.
-    for step, (batch_features, batch_labels) in enumerate(train_dataset):
-        with tf.GradientTape() as tape:
-            logits, _, _ = model(batch_features, biases_list, training=True)  # Logits for this minibatch
-            loss_value = loss_fn(batch_labels, logits)
-
-        grads = tape.gradient(loss_value, model.trainable_weights)
-        optimizer.apply_gradients(zip(grads, model.trainable_weights))
-
-        # Update training metrics
-        train_loss(loss_value)
-        train_accuracy(batch_labels, logits)
-
-        # Collect embeddings and labels
-        all_embeddings.append(logits.numpy())
-        all_labels.append(batch_labels.numpy())
-
-    # Log every 200 batches.
-    if step % 200 == 0:
-        print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, step, train_loss.result(), train_accuracy.result()))
-
-    # Reset training metrics at the end of each epoch
-    train_loss.reset_states()
-    train_accuracy.reset_states()
-
-    # Save the model every 5 epochs
-    if (epoch + 1) % 5 == 0:
-        checkpoint_manager.save()
-
-    print('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, train_loss.result(), train_accuracy.result()))
-    print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
-
-# Concatenate all embeddings and labels after training
-jhy_final_embedding = np.concatenate(all_embeddings, axis=0)
-yy = np.concatenate(all_labels, axis=0)
-
-# Uncomment the visualize_with_tsne function call to enable t-SNE visualization
-visualize_with_tsne(jhy_final_embedding, yy)
-
-# Assign the final embeddings to `jhy_final_embedding` and labels to `yy` after model training
-# For demonstration purposes, we use the output of the last training batch as the final embedding
-jhy_final_embedding = logits.numpy()
-yy = batch_labels.numpy()
-# Uncomment the visualize_with_tsne function call to enable t-SNE visualization
-visualize_with_tsne(jhy_final_embedding, yy)
-
-optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-
-loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-
-# Define the training dataset using the TensorFlow 2.x Dataset API
-train_dataset = tf.data.Dataset.from_tensor_slices((feature_vectors, y_train))
-train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size)
-
-# Initialize metrics to track the loss and accuracy
-train_loss = tf.keras.metrics.Mean(name='train_loss')
-train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
-
-# Training loop
-for epoch in range(nb_epochs):
-    start_time = time.time()
-
-    # Iterate over the batches of the dataset.
-    for step, (batch_features, batch_labels) in enumerate(train_dataset):
-        # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
-        with tf.GradientTape() as tape:
-            # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
-            logits, _, _ = model(batch_features, training=True)  # Logits for this minibatch
 
             # Compute the loss value for this minibatch.
             loss_value = loss_fn(batch_labels, logits)
