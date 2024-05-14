@@ -141,15 +141,46 @@ if checkpoint_manager.latest_checkpoint:
 all_embeddings = []
 all_labels = []
 
-# Training loop
-for epoch in range(nb_epochs):
-    # ... rest of the training loop code ...
-
-checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
-checkpoint_manager = tf.train.CheckpointManager(checkpoint, directory=checkpoint_prefix, max_to_keep=5)
-
 # Generate bias matrices for each graph and log their shapes for verification
 biases_list = []
+
+# End of script
+
+# Initialize metrics to track the loss and accuracy
+train_loss = tf.keras.metrics.Mean(name='train_loss')
+train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
+
+# Training loop
+for epoch in range(nb_epochs):
+    # Reset the metrics at the start of the next epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
+
+    # Iterate over the batches of the dataset.
+    for step, (batch_features, batch_labels) in enumerate(train_dataset):
+        with tf.GradientTape() as tape:
+            # Forward pass through the model
+            logits, _, _ = model(batch_features, biases_list, training=True, attn_drop=attn_drop, ffd_drop=ffd_drop)
+            # Compute loss
+            loss_value = loss_fn(batch_labels, logits)
+
+        grads = tape.gradient(loss_value, model.trainable_weights)
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+        # Update training metrics
+        train_loss.update_state(loss_value)
+        train_accuracy.update_state(batch_labels, logits)
+
+    # Log every 200 batches.
+    if step % 200 == 0:
+        print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, step, train_loss.result(), train_accuracy.result()))
+
+    # Save the model every 5 epochs
+    if (epoch + 1) % 5 == 0:
+        checkpoint_manager.save()
+
+    print('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, train_loss.result(), train_accuracy.result()))
+    print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
 
 # Iterate over the batches of the dataset.
 for step, (batch_features, batch_labels) in enumerate(train_dataset):
@@ -177,10 +208,15 @@ attn_drop = 0.6
 # Define default feature feed-forward dropout rate
 ffd_drop = 0.6
 
+# Initialize metrics to track the loss and accuracy
+train_loss = tf.keras.metrics.Mean(name='train_loss')
+train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
+
 # Training loop
 for epoch in range(nb_epochs):
-    logging.debug("Starting epoch %d", epoch)
-    start_time = time.time()
+    # Reset the metrics at the start of the next epoch
+    train_loss.reset_states()
+    train_accuracy.reset_states()
 
     # Iterate over the batches of the dataset.
     for step, (batch_features, batch_labels) in enumerate(train_dataset):
@@ -206,8 +242,8 @@ for epoch in range(nb_epochs):
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
 
         # Update training metrics
-        train_loss(loss_value)
-        train_accuracy(batch_labels, logits)
+        train_loss.update_state(loss_value)
+        train_accuracy.update_state(batch_labels, logits)
 
         # Collect embeddings and labels
         all_embeddings.append(logits.numpy())
@@ -338,8 +374,8 @@ for epoch in range(nb_epochs):
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
 
         # Update training metrics
-        train_loss(loss_value)
-        train_accuracy(batch_labels, logits)
+        train_loss.update_state(loss_value)
+        train_accuracy.update_state(batch_labels, logits)
 
     # Log every 200 batches.
     if step % 200 == 0:
