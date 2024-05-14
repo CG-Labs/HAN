@@ -144,6 +144,8 @@ all_labels = []
 # Generate bias matrices for each graph and log their shapes for verification
 biases_list = []
 
+# Removed redundant metric definitions, reset calls, and placeholders for additional training loops
+
 # End of script
 
 # Redundant metric definitions and training loop removed
