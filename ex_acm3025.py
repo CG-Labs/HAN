@@ -147,6 +147,8 @@ if checkpoint_manager.latest_checkpoint:
     checkpoint.restore(checkpoint_manager.latest_checkpoint)
     print('Model restored from checkpoint at {}'.format(checkpoint_manager.latest_checkpoint))
 
+# Removed erroneous model call outside of the training loop that caused 'batch_features' NameError
+
 # logits, _, _ = model(batch_features, biases_list, ffd_drop=ffd_drop, attn_drop=attn_drop, training=True)  # Commented out to fix 'NameError' for 'batch_features'
 
 # logits, _, _ = model(batch_features, biases_list, ffd_drop=ffd_drop, attn_drop=attn_drop, training=True)  # Commented out to fix 'NameError' for 'batch_features'
