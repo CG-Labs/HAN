@@ -28,7 +28,7 @@ featype = 'fea'
 checkpt_file = 'pre_trained/{}/{}_allMP_multi_{}_.ckpt'.format(dataset, dataset, featype)
 print('model: {}'.format(checkpt_file))
 # training params
-batch_size = 1
+batch_size = 6  # Adjusted to match the first dimension of feature_vectors_tensor after concatenation
 nb_epochs = 200
 patience = 100
 lr = 0.005  # learning rate
