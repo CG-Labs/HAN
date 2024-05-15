@@ -58,7 +58,11 @@ class HeteGAT_multi(tf.keras.Model):
             embed_list.append(tf.expand_dims(h_1, axis=0))  # Ensure that each tensor has the same rank
 
         # Verify that all tensors in embed_list have compatible shapes for concatenation
+        if not embed_list:
+            raise ValueError("embed_list is empty. Ensure that tensors are being added correctly.")
         tensor_shapes = [tensor.shape for tensor in embed_list]
+        if not all(len(shape) == len(tensor_shapes[0]) for shape in tensor_shapes):
+            raise ValueError("All tensors in embed_list must have the same number of dimensions.")
         if not all(shape == tensor_shapes[0] for shape in tensor_shapes):
             raise ValueError("All tensors in embed_list must have compatible shapes for concatenation.")
 
@@ -67,7 +71,7 @@ class HeteGAT_multi(tf.keras.Model):
             embed_list = [tf.cast(tensor, dtype=embed_list[0].dtype) for tensor in embed_list]
 
         # Reshape tensors in embed_list to have the same shape except for the concatenation axis
-        target_shape = tensor_shapes[0][2:]
+        target_shape = tensor_shapes[0][1:]  # Adjusted to account for the squeezed dimension
         embed_list = [tf.reshape(tensor, (-1,) + target_shape) for tensor in embed_list]
 
         # Concatenate tensors along axis 1, ensuring they have the same shape and data type
