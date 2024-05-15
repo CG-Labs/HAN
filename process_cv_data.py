@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import logging
+from docx import Document
 
 # Set up logging configuration to capture debug statements
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
@@ -55,8 +56,8 @@ def create_adjacency_matrix(cv_data):
     # Convert cosine similarity matrix to binary adjacency matrix format
     adjacency_matrix = (cosine_matrix > 0.5).astype(int)
 
-    # Return the adjacency matrix wrapped in a list
-    return [adjacency_matrix]
+    # Return the adjacency matrix
+    return adjacency_matrix
 
 def process_cv_data(cv_text):
     """
@@ -119,9 +120,10 @@ def process_cv_data(cv_text):
     return feature_vectors, adjacency_matrix, y_train, y_val, y_test, train_mask, val_mask, test_mask
 
 if __name__ == "__main__":
-    # Read the CV text file
-    with open('Alan_Woulfe_CV.txt', 'r') as file:
-        cv_text = file.read()
+    # Read the CV from a .docx file
+    with open('Alan_Woulfe_CV.docx', 'rb') as file:
+        document = Document(file)
+        cv_text = "\n".join([paragraph.text for paragraph in document.paragraphs])
 
     # Process the CV text
     feature_vectors, adjacency_matrix, y_train, y_val, y_test, train_mask, val_mask, test_mask = process_cv_data(cv_text)
@@ -131,5 +133,5 @@ if __name__ == "__main__":
     for features in feature_vectors:
         print(features)
     print("\nAdjacency Matrix:")
-    for section, connections in adjacency_matrix.items():
-        print(f"{section}: {connections}")
+    for i, row in enumerate(adjacency_matrix):
+        print(f"Section {i}: {row}")
