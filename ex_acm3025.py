@@ -141,6 +141,17 @@ if checkpoint_manager.latest_checkpoint:
 train_loss = tf.keras.metrics.Mean(name='train_loss')
 train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
 
+# Reset the metrics at the start of the next epoch
+train_loss.reset_state()
+train_accuracy.reset_state()
+
+# Training loop
+for epoch in range(nb_epochs):
+    # Reset the metrics at the start of the next epoch
+    train_loss.reset_state()
+    train_accuracy.reset_state()
+    # ... rest of the training loop code ...
+
 # Initialize lists to collect embeddings and labels from each batch
 all_embeddings = []
 all_labels = []
