@@ -122,8 +122,8 @@ checkpoint_prefix = './checkpoints/ckpt'
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
 
-# Reshape each feature vector to include the batch and node dimensions and concatenate along the node dimension
-feature_vectors_tensor = tf.concat([tf.reshape(fv, (1, -1, ft_size)) for fv in feature_vectors_list], axis=1)
+# Reshape each feature vector to include the batch and node dimensions and concatenate along the batch dimension
+feature_vectors_tensor = tf.concat([tf.reshape(fv, (1, nb_nodes, ft_size)) for fv in feature_vectors_list], axis=0)
 logging.debug("Shape of feature_vectors_tensor after concatenation: %s", feature_vectors_tensor.shape)
 
 # Ensure the feature_vectors_tensor is 3-dimensional and has the correct shape
