@@ -44,8 +44,14 @@ class HeteGAT_multi(tf.keras.Model):
         # Initialize layers here
 
     def call(self, inputs_list, bias_mat_list, training, attn_drop, ffd_drop):
+        tf.print("Debug: Entering call method of HeteGAT_multi")
+        tf.print("Debug: inputs_list length:", len(inputs_list))
+        tf.print("Debug: bias_mat_list length:", len(bias_mat_list))
+
         embed_list = []
-        for inputs, bias_mat in zip(inputs_list, bias_mat_list):
+        for i, (inputs, bias_mat) in enumerate(zip(inputs_list, bias_mat_list)):
+            tf.print(f"Debug: Processing input {i} with shape:", tf.shape(inputs))
+            tf.print(f"Debug: Processing bias_mat {i} with shape:", tf.shape(bias_mat))
             # Ensure inputs is a 2D tensor by removing any singleton dimensions that are not required
             if len(inputs.shape) > 2 and inputs.shape[1] == 1:
                 inputs = tf.squeeze(inputs, axis=1)
@@ -56,6 +62,7 @@ class HeteGAT_multi(tf.keras.Model):
                                               in_drop=ffd_drop, coef_drop=attn_drop, residual=self.residual))
             h_1 = tf.concat(attns, axis=-1)
             embed_list.append(tf.expand_dims(h_1, axis=0))  # Ensure that each tensor has the same rank
+            tf.print(f"Debug: embed_list length after processing input {i}:", len(embed_list))
 
         # Verify that all tensors in embed_list have compatible shapes for concatenation
         if not embed_list:
