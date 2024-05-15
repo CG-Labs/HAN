@@ -360,7 +360,7 @@ train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
 # Training loop
 for epoch in range(nb_epochs):
     # Reset the metrics at the start of the next epoch
-    train_loss.reset_states()
+    train_loss.reset_state()
     train_accuracy.reset_states()
 
     # Iterate over the batches of the dataset.
