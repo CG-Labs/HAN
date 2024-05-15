@@ -111,7 +111,7 @@ if featype == 'adj':
 import scipy.sparse as sp
 
 # Reshape feature_vectors_list into a 3D tensor with shape (batch_size, nb_nodes, ft_size)
-feature_vectors_tensor = tf.stack(feature_vectors_list, axis=0)
+feature_vectors_tensor = tf.stack([tf.reshape(fv, (1, nb_nodes, ft_size)) for fv in feature_vectors_list], axis=0)
 logging.debug("Shape of feature_vectors_tensor after stacking: %s", feature_vectors_tensor.shape)
 
 # Ensure the feature_vectors_tensor is 3-dimensional and has the correct shape
