@@ -148,6 +148,45 @@ all_labels = []
 # Generate bias matrices for each graph and log their shapes for verification
 biases_list = []
 
+# Reset the metrics at the start of the next epoch
+train_loss.reset_state()
+train_accuracy.reset_state()
+
+# Log every 200 batches.
+if step % 200 == 0:
+    print('Epoch {} Batch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, step, train_loss.result(), train_accuracy.result()))
+
+# Save the model every 5 epochs
+if (epoch + 1) % 5 == 0:
+    checkpoint_manager.save()
+
+train_loss.reset_state()
+train_accuracy.reset_state()
+
+print('Epoch {} Loss {:.4f} Accuracy {:.4f}'.format(epoch, train_loss.result(), train_accuracy.result()))
+print('Time taken for 1 epoch: {} secs\n'.format(time.time() - start_time))
+
+# Reset training metrics at the end of each epoch
+train_loss.reset_state()
+train_accuracy.reset_state()
+
+train_loss.reset_state()
+train_accuracy.reset_state()
+
+train_loss.reset_state()
+train_accuracy.reset_state()
+
+train_loss.reset_state()
+train_accuracy.reset_state()
+
+train_loss.reset_state()
+
+train_loss.reset_state()
+train_accuracy.reset_state()
+
+train_loss.reset_state()
+train_accuracy.reset_state()
+
 train_loss.reset_state()
 train_accuracy.reset_state()
 
