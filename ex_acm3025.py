@@ -137,12 +137,20 @@ if checkpoint_manager.latest_checkpoint:
     checkpoint.restore(checkpoint_manager.latest_checkpoint)
     print('Model restored from checkpoint at {}'.format(checkpoint_manager.latest_checkpoint))
 
+# Initialize metrics to track the loss and accuracy
+train_loss = tf.keras.metrics.Mean(name='train_loss')
+train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
+
 # Initialize lists to collect embeddings and labels from each batch
 all_embeddings = []
 all_labels = []
 
 # Generate bias matrices for each graph and log their shapes for verification
 biases_list = []
+
+train_loss.reset_state()
+
+train_accuracy.reset_state()
 
 # Initialize metrics to track the loss and accuracy
 train_loss = tf.keras.metrics.Mean(name='train_loss')
