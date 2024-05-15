@@ -133,7 +133,7 @@ assert feature_vectors_tensor.shape[1] == nb_nodes, "The second dimension of fea
 assert feature_vectors_tensor.shape[2] == ft_size, "The third dimension of feature_vectors_tensor must match the feature size"
 
 # Reshape y_train to match the batch size dimension of feature_vectors_tensor
-y_train = np.expand_dims(y_train, axis=0)
+y_train = np.reshape(y_train, (batch_size, nb_nodes, nb_classes))
 logging.debug("Shape of y_train after reshaping: %s", y_train.shape)
 
 # Ensure y_train is 3-dimensional and has the correct shape
