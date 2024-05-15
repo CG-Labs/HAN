@@ -122,11 +122,12 @@ checkpoint_prefix = './checkpoints/ckpt'
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
 
-# Convert feature_vectors_list to a 3D tensor with shape [batch_size, nb_nodes, ft_size]
-# where batch_size is the length of feature_vectors_list, ensuring each feature vector
-# is reshaped to [nb_nodes, ft_size] before stacking.
-feature_vectors_tensor = tf.stack([tf.reshape(fv, (nb_nodes, ft_size)) for fv in feature_vectors_list], axis=0)
-# Define the training dataset using the TensorFlow 2.x Dataset API
+# Reshape each feature vector to include the batch and node dimensions and concatenate along the node dimension
+feature_vectors_tensor = tf.concat([tf.reshape(fv, (1, -1, ft_size)) for fv in feature_vectors_list], axis=1)
+logging.debug("Shape of feature_vectors_tensor after concatenation: %s", feature_vectors_tensor.shape)
+
+# Reshape y_train to match the batch size dimension of feature_vectors_tensor
+y_train = np.expand_dims(y_train, axis=0)
 train_dataset = tf.data.Dataset.from_tensor_slices((feature_vectors_tensor, y_train))
 train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size)
 
@@ -147,6 +148,18 @@ all_labels = []
 
 # Generate bias matrices for each graph and log their shapes for verification
 biases_list = []
+for adj in rownetworks:
+    adj = sp.coo_matrix(adj)
+    adj_ = adj + sp.eye(adj.shape[0])
+    rowsum = np.array(adj_.sum(1))
+    degree_mat_inv_sqrt = sp.diags(np.power(rowsum, -0.5).flatten())
+    adj_normalized = adj_.dot(degree_mat_inv_sqrt).transpose().dot(degree_mat_inv_sqrt).tocoo()
+    biases = tf.SparseTensor(indices=np.array([adj_normalized.row, adj_normalized.col]).T,
+                             values=adj_normalized.data,
+                             dense_shape=adj_normalized.shape)
+    biases = tf.sparse.reorder(biases)  # Reorder the SparseTensor to sort the indices
+    biases_list.append(tf.sparse.to_dense(biases))
+logging.debug("Biases list populated with %d bias matrices", len(biases_list))
 
 # Reset the metrics at the start of the next epoch
 train_loss.reset_state()
@@ -166,7 +179,8 @@ for epoch in range(nb_epochs):
     # Iterate over the batches of the dataset.
     for step, (batch_features, batch_labels) in enumerate(train_dataset):
         with tf.GradientTape() as tape:
-            # Forward pass through the model
+            # Debug print to confirm the shape of batch_features before passing to the model
+            tf.print("Debug: Shape of batch_features before model call:", tf.shape(batch_features))
             logits, _, _ = model(batch_features, biases_list, attn_drop=0.5, ffd_drop=0.5, training=True)
             # Compute loss
             loss_value = loss_fn(batch_labels, logits)

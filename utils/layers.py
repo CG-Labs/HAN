@@ -13,22 +13,19 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         seq_shape = tf.shape(seq)
         # Assert that the input tensor seq has a rank of 3
         tf.debugging.assert_equal(tf.rank(seq), 3, message='Input tensor seq must be 3-dimensional')
-        # Assuming the input tensor seq has a shape of (batch_size, 1, num_features)
-        num_features = seq_shape[-1]  # Get the number of features from the last dimension of seq
-        num_nodes = bias_mat.shape[0]  # Assume the number of nodes is the first dimension of bias_mat
-        # Calculate the padding needed to make num_features divisible by num_nodes
-        padding_size = num_nodes - (num_features % num_nodes) if num_features % num_nodes != 0 else 0
-        # Pad the sequence with zeros on the last dimension if padding is needed
-        seq = tf.pad(seq, [[0, 0], [0, 0], [0, padding_size]], 'CONSTANT') if padding_size > 0 else seq
-        # Update num_features to include padding
-        num_features += padding_size
-        # Calculate the size of features for each node
-        feature_size = num_features // num_nodes
-        # Reshape seq to have three dimensions: (batch_size, num_nodes, feature_size)
-        seq = tf.reshape(seq, (seq_shape[0], num_nodes, feature_size))
+        # Assuming the input tensor seq has a shape of (batch_size, num_nodes, num_features)
+        # Check if the seq tensor is already 3-dimensional and has the correct shape
+        if tf.rank(seq) == 3 and seq_shape[1] == bias_mat.shape[0]:
+            # If the shape is already correct, proceed without reshaping
+            seq_fts = conv1d(out_sz, 1, use_bias=False)(seq)
+        else:
+            # If the shape is not correct, reshape seq to have three dimensions: (batch_size, num_nodes, feature_size)
+            # Calculate the feature size assuming the last dimension of seq is the total number of features
+            total_features = seq_shape[-1]
+            feature_size = total_features // bias_mat.shape[0]
+            seq = tf.reshape(seq, (-1, bias_mat.shape[0], feature_size))
+            seq_fts = conv1d(out_sz, 1, use_bias=False)(seq)
         # Rest of the function remains unchanged
-        seq_fts = conv1d(out_sz, 1, use_bias=False)(seq)
-
         f_1 = conv1d(1, 1)(seq_fts)
         f_2 = conv1d(1, 1)(seq_fts)
 
