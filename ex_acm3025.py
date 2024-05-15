@@ -126,8 +126,23 @@ loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
 feature_vectors_tensor = tf.concat([tf.reshape(fv, (1, -1, ft_size)) for fv in feature_vectors_list], axis=1)
 logging.debug("Shape of feature_vectors_tensor after concatenation: %s", feature_vectors_tensor.shape)
 
+# Ensure the feature_vectors_tensor is 3-dimensional and has the correct shape
+assert len(feature_vectors_tensor.shape) == 3, "feature_vectors_tensor must be 3-dimensional"
+assert feature_vectors_tensor.shape[0] == batch_size, "The first dimension of feature_vectors_tensor must match batch_size"
+assert feature_vectors_tensor.shape[1] == nb_nodes, "The second dimension of feature_vectors_tensor must match the number of nodes"
+assert feature_vectors_tensor.shape[2] == ft_size, "The third dimension of feature_vectors_tensor must match the feature size"
+
 # Reshape y_train to match the batch size dimension of feature_vectors_tensor
 y_train = np.expand_dims(y_train, axis=0)
+logging.debug("Shape of y_train after reshaping: %s", y_train.shape)
+
+# Ensure y_train is 3-dimensional and has the correct shape
+assert len(y_train.shape) == 3, "y_train must be 3-dimensional"
+assert y_train.shape[0] == batch_size, "The first dimension of y_train must match batch_size"
+assert y_train.shape[1] == nb_nodes, "The second dimension of y_train must match the number of nodes"
+assert y_train.shape[2] == nb_classes, "The third dimension of y_train must match the number of classes"
+
+# Create a TensorFlow dataset with the correctly shaped tensors
 train_dataset = tf.data.Dataset.from_tensor_slices((feature_vectors_tensor, y_train))
 train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size)
 
