@@ -55,7 +55,11 @@ class HeteGAT_multi(tf.keras.Model):
                                               out_sz=self.hid_units[0], activation=self.activation,
                                               in_drop=ffd_drop, coef_drop=attn_drop, residual=self.residual))
             h_1 = tf.concat(attns, axis=-1)
-            embed_list.append(h_1)
+            embed_list.append(tf.expand_dims(h_1, axis=0))  # Ensure that each tensor has the same rank
+        # Check that all tensors in embed_list have the same shape except for the concatenation axis
+        embed_shapes = [embed.get_shape().as_list() for embed in embed_list]
+        if not all(shape == embed_shapes[0] for shape in embed_shapes):
+            raise ValueError("All tensors in embed_list must have the same shape except for the concatenation axis.")
         multi_embed = tf.concat(embed_list, axis=1)
         # Continue with the rest of the forward pass as defined previously
         final_embed, att_val = layers.SimpleAttLayer(multi_embed, self.mp_att_size,
