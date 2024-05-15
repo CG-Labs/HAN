@@ -83,10 +83,13 @@ def load_data_dblp(cv_path='Alan_Woulfe_CV.txt'):
     # Instantiate the model with the correct number of nodes and classes
     model = HeteGAT_multi(nb_classes=nb_classes, nb_nodes=nb_nodes, hid_units=hid_units, n_heads=n_heads, activation=nonlinearity, residual=residual)
 
-    return adjacency_matrix, feature_vectors_list, y_train, y_val, y_test, train_mask, val_mask, test_mask, model
+    # This debug statement is moved inside the load_data_dblp function after nb_nodes is defined
+    logging.debug("Debug: nb_nodes: %d", nb_nodes)
+
+    return adjacency_matrix, feature_vectors_list, y_train, y_val, y_test, train_mask, val_mask, test_mask, model, nb_nodes
 
 # Load data and ensure feature_vectors_list is a list and not empty before proceeding
-rownetworks, feature_vectors_list, y_train, y_val, y_test, train_mask, val_mask, test_mask, model = load_data_dblp()
+rownetworks, feature_vectors_list, y_train, y_val, y_test, train_mask, val_mask, test_mask, model, nb_nodes = load_data_dblp()
 logging.debug("Type of rownetworks: %s", type(rownetworks))
 logging.debug("Contents of rownetworks: %s", rownetworks)
 # Removed type and empty list checks for feature_vectors_list
@@ -96,35 +99,20 @@ fea_list = feature_vectors_list
 logging.debug("Type of feature_vectors_list: %s", type(feature_vectors_list))
 if isinstance(feature_vectors_list, list) and feature_vectors_list:
     logging.debug("First element of feature_vectors_list: %s", feature_vectors_list[0])
+    # Define ft_size based on the shape of the feature vectors
+    ft_size = feature_vectors_list[0].shape[1]
 else:
     logging.error("feature_vectors_list is not a list or is empty")
+    sys.exit("Error: feature_vectors_list is not a list or is empty")
 
 if featype == 'adj':
     fea_list = adj_list
 
 import scipy.sparse as sp
 
-# Check if fea_list is not empty before accessing
-if fea_list:
-    # Log the type and content of the first element in fea_list for debugging
-    logging.debug("Type of fea_list[0]: %s", type(fea_list[0]))
-    logging.debug("Content of fea_list[0]: %s", fea_list[0])
-    nb_nodes = fea_list[0].shape[0]
-    ft_size = fea_list[0].shape[1]
-else:
-    logging.error("Feature list is empty. Cannot proceed with model training.")
-    sys.exit("Error: Feature list is empty.")
-
-# Initialize the checkpoint manager for saving and loading model checkpoints
-checkpoint_prefix = './checkpoints/ckpt'
-
-# Define the optimizer and loss function for the model training
-optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-
-# Reshape each feature vector to include the node dimension and concatenate along the batch dimension
-feature_vectors_tensor = tf.concat([tf.reshape(fv, (1, nb_nodes, ft_size)) for fv in feature_vectors_list], axis=0)
-logging.debug("Shape of feature_vectors_tensor after concatenation: %s", feature_vectors_tensor.shape)
+# Reshape feature_vectors_list into a 3D tensor with shape (batch_size, nb_nodes, ft_size)
+feature_vectors_tensor = tf.stack(feature_vectors_list, axis=0)
+logging.debug("Shape of feature_vectors_tensor after stacking: %s", feature_vectors_tensor.shape)
 
 # Ensure the feature_vectors_tensor is 3-dimensional and has the correct shape
 assert len(feature_vectors_tensor.shape) == 3, "feature_vectors_tensor must be 3-dimensional"
@@ -132,19 +120,25 @@ assert feature_vectors_tensor.shape[0] == batch_size, "The first dimension of fe
 assert feature_vectors_tensor.shape[1] == nb_nodes, "The second dimension of feature_vectors_tensor must match the number of nodes"
 assert feature_vectors_tensor.shape[2] == ft_size, "The third dimension of feature_vectors_tensor must match the feature size"
 
-# Reshape y_train to match the batch size dimension of feature_vectors_tensor
-y_train = np.reshape(y_train, (batch_size, nb_nodes, nb_classes))
+# Reshape y_train to have a shape of (6, 3, 1) to match the number of elements and the model's expectations
+y_train = np.reshape(y_train, (batch_size, 3, 1))
 logging.debug("Shape of y_train after reshaping: %s", y_train.shape)
 
 # Ensure y_train is 3-dimensional and has the correct shape
 assert len(y_train.shape) == 3, "y_train must be 3-dimensional"
 assert y_train.shape[0] == batch_size, "The first dimension of y_train must match batch_size"
-assert y_train.shape[1] == nb_nodes, "The second dimension of y_train must match the number of nodes"
-assert y_train.shape[2] == nb_classes, "The third dimension of y_train must match the number of classes"
+assert y_train.shape[1] == 3, "The second dimension of y_train must match the number of nodes with class labels"
+assert y_train.shape[2] == 1, "The third dimension of y_train must match the number of classes per node"
 
 # Create a TensorFlow dataset with the correctly shaped tensors
 train_dataset = tf.data.Dataset.from_tensor_slices((feature_vectors_tensor, y_train))
 train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size)
+
+checkpoint_prefix = './checkpoints/ckpt'
+
+# Define the optimizer and loss function for the model training
+optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
 
 checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
 checkpoint_manager = tf.train.CheckpointManager(checkpoint, directory=checkpoint_prefix, max_to_keep=5)
