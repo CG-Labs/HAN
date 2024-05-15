@@ -99,8 +99,12 @@ fea_list = feature_vectors_list
 logging.debug("Type of feature_vectors_list: %s", type(feature_vectors_list))
 if isinstance(feature_vectors_list, list) and feature_vectors_list:
     logging.debug("First element of feature_vectors_list: %s", feature_vectors_list[0])
-    # Define ft_size based on the shape of the feature vectors
-    ft_size = feature_vectors_list[0].shape[1]
+    # Define ft_size based on the shape of the feature vectors and the number of nodes
+    ft_size = feature_vectors_list[0].shape[1] // nb_nodes
+
+    # Reshape feature_vectors_list into a 3D tensor with shape (batch_size, nb_nodes, ft_size)
+    feature_vectors_tensor = tf.stack([tf.reshape(fv, (1, nb_nodes, ft_size)) for fv in feature_vectors_list], axis=0)
+    logging.debug("Shape of feature_vectors_tensor after stacking: %s", feature_vectors_tensor.shape)
 else:
     logging.error("feature_vectors_list is not a list or is empty")
     sys.exit("Error: feature_vectors_list is not a list or is empty")
@@ -109,10 +113,6 @@ if featype == 'adj':
     fea_list = adj_list
 
 import scipy.sparse as sp
-
-# Reshape feature_vectors_list into a 3D tensor with shape (batch_size, nb_nodes, ft_size)
-feature_vectors_tensor = tf.stack([tf.reshape(fv, (1, nb_nodes, ft_size)) for fv in feature_vectors_list], axis=0)
-logging.debug("Shape of feature_vectors_tensor after stacking: %s", feature_vectors_tensor.shape)
 
 # Ensure the feature_vectors_tensor is 3-dimensional and has the correct shape
 assert len(feature_vectors_tensor.shape) == 3, "feature_vectors_tensor must be 3-dimensional"
