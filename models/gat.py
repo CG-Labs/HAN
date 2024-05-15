@@ -41,7 +41,9 @@ class HeteGAT_multi(tf.keras.Model):
         self.activation = activation
         self.residual = residual
         self.mp_att_size = mp_att_size
-        # Initialize layers here
+        # Define layers to be used in the call method
+        self.attn_heads = [layers.attn_head for _ in range(n_heads[0])]
+        self.out_dense_layers = [tf.keras.layers.Dense(self.nb_classes, activation=None) for _ in range(n_heads[-1])]
 
     def call(self, inputs_list, bias_mat_list, training, attn_drop, ffd_drop):
         tf.print("Debug: Entering call method of HeteGAT_multi")
@@ -52,17 +54,29 @@ class HeteGAT_multi(tf.keras.Model):
         for i, (inputs, bias_mat) in enumerate(zip(inputs_list, bias_mat_list)):
             tf.print(f"Debug: Processing input {i} with shape:", tf.shape(inputs))
             tf.print(f"Debug: Processing bias_mat {i} with shape:", tf.shape(bias_mat))
-            # Ensure inputs is a 3D tensor with shape (batch_size, num_nodes, feature_size)
-            # Removed the dimension check to prevent incorrect flagging of correctly shaped tensors
-            tf.print("Debug: Tensor shape before processing:", tf.shape(inputs))
-            # Additional debug prints to track the tensor shape
-            tf.print("Debug: Tensor rank before processing:", tf.rank(inputs))
-            tf.print("Debug: Tensor dimensions before processing:", tf.shape(inputs))
             if tf.shape(inputs)[1] != self.nb_nodes:
                 tf.print("Debug: Tensor shape at error:", tf.shape(inputs))
                 raise ValueError(f"Expected inputs second dimension to match number of nodes {self.nb_nodes}, got {tf.shape(inputs)[1]}")
             attns = []
-            # ... rest of the code remains unchanged ...
+            for attn_head in self.attn_heads:
+                attns.append(attn_head(inputs, bias_mat=bias_mat,
+                                       out_sz=self.hid_units[0], activation=self.activation,
+                                       in_drop=ffd_drop, coef_drop=attn_drop, residual=self.residual))
+            h_1 = tf.concat(attns, axis=-1)
+            embed_list.append(tf.expand_dims(tf.squeeze(h_1), axis=1))
+        # Ensure all tensors in embed_list have the same data type before concatenation
+        if not all(tensor.dtype == embed_list[0].dtype for tensor in embed_list):
+            embed_list = [tf.cast(tensor, dtype=embed_list[0].dtype) for tensor in embed_list]
+        multi_embed = tf.concat(embed_list, axis=1)
+        final_embed, att_val = layers.SimpleAttLayer(multi_embed, self.mp_att_size,
+                                                     time_major=False,
+                                                     return_alphas=True)
+        out = []
+        for dense_layer in self.out_dense_layers:
+            out.append(dense_layer(final_embed))
+        logits = tf.add_n(out) / self.n_heads[-1]
+        logits = tf.expand_dims(logits, axis=0)
+        return logits, final_embed, att_val
 
 class HeteGAT_no_coef(BaseGAttN):
     def inference(inputs, nb_classes, nb_nodes, training, attn_drop, ffd_drop,

@@ -36,8 +36,8 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         coefs_non_zero = tf.math.count_nonzero(coefs)
         tf.debugging.assert_positive(coefs_non_zero, message="Attention coefficients (coefs) are all zeros after softmax")
 
-        # Reshape seq_fts to be a 2D tensor for matrix multiplication
-        seq_fts = tf.squeeze(seq_fts, axis=1)
+        # Removed the squeeze operation as it is not needed and causes dimensionality issues
+        # Ensure seq_fts is properly shaped for subsequent operations without squeezing
         # Reshape coefs to be a 2D tensor for matrix multiplication
         coefs = tf.squeeze(coefs, axis=0)
 

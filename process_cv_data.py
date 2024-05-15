@@ -83,31 +83,39 @@ def process_cv_data(cv_text):
             logging.debug("Appended feature vector type: %s, shape: %s", type(feature_vectors[-1]), feature_vectors[-1].shape)
         # If the content is empty, skip adding it to the feature_vectors list
 
-    adjacency_matrix = create_adjacency_matrix(cv_data)
+    # Calculate the number of nodes (CV sections) before reshaping feature_vectors
+    nb_nodes = len(feature_vectors)
+    logging.debug("Number of nodes (nb_nodes): %d", nb_nodes)
 
-    # Generate dummy y_train, y_val, y_test, train_mask, val_mask, test_mask
+    # Reshape feature_vectors into a 3D tensor with shape (1, nb_nodes, ft_size)
+    feature_vectors = np.stack(feature_vectors).reshape(1, nb_nodes, -1)
+    logging.debug("Shape of feature_vectors after reshaping: %s", feature_vectors.shape)
+
+    # Generate y_train, y_val, y_test, train_mask, val_mask, test_mask
     # Assuming 3 classes for the purpose of generating dummy data
     nb_classes = 3
-    nb_nodes = len(feature_vectors)
-    y_train = np.zeros((nb_nodes, nb_classes))
-    y_val = np.zeros((nb_nodes, nb_classes))
-    y_test = np.zeros((nb_nodes, nb_classes))
+    y_train = np.zeros((nb_nodes, nb_classes, 1))
+    y_val = np.zeros((nb_nodes, nb_classes, 1))
+    y_test = np.zeros((nb_nodes, nb_classes, 1))
     train_mask = np.zeros((nb_nodes,)).astype(bool)
     val_mask = np.zeros((nb_nodes,)).astype(bool)
     test_mask = np.zeros((nb_nodes,)).astype(bool)
 
-    # For simplicity, let's say the first node is for training, the second for validation, and the third for testing
-    if nb_nodes > 2:
-        y_train[0, 0] = 1  # Class 0
-        y_val[1, 1] = 1    # Class 1
-        y_test[2, 2] = 1   # Class 2
-        train_mask[0] = True
-        val_mask[1] = True
-        test_mask[2] = True
+    # Assign class labels to each node in a round-robin fashion
+    for i in range(nb_nodes):
+        y_train[i, i % nb_classes, 0] = 1
+        y_val[i, (i + 1) % nb_classes, 0] = 1
+        y_test[i, (i + 2) % nb_classes, 0] = 1
+        train_mask[i] = True if i % 3 == 0 else False
+        val_mask[i] = True if i % 3 == 1 else False
+        test_mask[i] = True if i % 3 == 2 else False
 
     # Log the length of feature_vectors for debugging
     print("Length of feature_vectors:", len(feature_vectors))
     logging.debug("Type of feature_vectors before return: %s", type(feature_vectors))
+
+    # Generate the adjacency matrix from CV data
+    adjacency_matrix = create_adjacency_matrix(cv_data)
     return feature_vectors, adjacency_matrix, y_train, y_val, y_test, train_mask, val_mask, test_mask
 
 if __name__ == "__main__":
