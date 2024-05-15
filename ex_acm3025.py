@@ -149,6 +149,21 @@ all_labels = []
 biases_list = []
 
 train_loss.reset_state()
+train_accuracy.reset_state()
+train_loss.reset_state()
+train_accuracy.reset_state()
+train_loss.reset_state()
+train_accuracy.reset_state()
+train_loss.reset_state()
+train_accuracy.reset_state()
+train_loss.reset_state()
+train_accuracy.reset_state()
+train_loss.reset_state()
+train_accuracy.reset_state()
+
+train_loss.reset_state()
+
+train_loss.reset_state()
 
 train_accuracy.reset_state()
 
