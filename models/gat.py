@@ -56,9 +56,21 @@ class HeteGAT_multi(tf.keras.Model):
                                               in_drop=ffd_drop, coef_drop=attn_drop, residual=self.residual))
             h_1 = tf.concat(attns, axis=-1)
             embed_list.append(tf.expand_dims(h_1, axis=0))  # Ensure that each tensor has the same rank
+
+        # Verify that all tensors in embed_list have compatible shapes for concatenation
+        tensor_shapes = [tensor.shape for tensor in embed_list]
+        if not all(shape == tensor_shapes[0] for shape in tensor_shapes):
+            raise ValueError("All tensors in embed_list must have compatible shapes for concatenation.")
+
         # Ensure all tensors in embed_list have the same data type before concatenation
         if not all(tensor.dtype == embed_list[0].dtype for tensor in embed_list):
             embed_list = [tf.cast(tensor, dtype=embed_list[0].dtype) for tensor in embed_list]
+
+        # Reshape tensors in embed_list to have the same shape except for the concatenation axis
+        target_shape = tensor_shapes[0][2:]
+        embed_list = [tf.reshape(tensor, (-1,) + target_shape) for tensor in embed_list]
+
+        # Concatenate tensors along axis 1, ensuring they have the same shape and data type
         multi_embed = tf.concat(embed_list, axis=1)
         # Continue with the rest of the forward pass as defined previously
         final_embed, att_val = layers.SimpleAttLayer(multi_embed, self.mp_att_size,
