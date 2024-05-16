@@ -34,17 +34,22 @@ class StateMachine:
     def execute_action(self, action):
         # Execute actions based on the current state and user input
         if self.current_state == 'data_retrieval':
-            # Logic to retrieve data from the database or other sources
-            # Placeholder for data retrieval logic
+            # Pseudocode for data retrieval logic
+            # Connect to Neo4j database using credentials
+            # Retrieve relevant data for analysis
+            # Handle any connection errors or data retrieval issues
             print("Retrieving data...")
+            # TODO: Implement actual data retrieval code once credentials are obtained
         elif self.current_state == 'data_analysis':
             # Logic to analyze the retrieved data
             # Placeholder for data analysis logic
             print("Analyzing data...")
+            # TODO: Implement actual data analysis using graph neural network
         elif self.current_state == 'prediction':
             # Logic to make predictions based on analyzed data
             # Placeholder for prediction logic
             print("Making predictions...")
+            # TODO: Implement actual prediction logic based on analyzed data
         else:
             print(f"No execution logic defined for action {action} in state {self.current_state}")
 
