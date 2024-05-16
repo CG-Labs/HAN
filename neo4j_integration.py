@@ -6,7 +6,7 @@ from docx import Document
 # Neo4j connection URL and credentials
 neo4j_url = "bolt://localhost:7687"
 neo4j_username = "neo4j"
-neo4j_password = "neo4j"
+neo4j_password = "Devin2023!"
 
 class Neo4jConnection:
     """
