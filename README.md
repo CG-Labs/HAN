@@ -69,6 +69,19 @@ To ensure the integrity and performance of the HAN model, the following testing 
 
 Results from these tests indicate that the model performs well with the provided datasets and is robust to variations in CV document formats. The t-SNE visualization provides a clear representation of the model's ability to differentiate between various features in the data.
 
+## State Machine and Predictive Analysis
+The HAN project now includes a state machine designed to enhance system autonomy by interpreting user input, understanding intent, and orchestrating tasks. The state machine operates in several states, including data retrieval, data analysis, and prediction, to autonomously execute actions based on user queries and data insights.
+
+### State Machine Functionality
+- **Data Retrieval**: The system retrieves relevant data from the Neo4j database, preparing it for analysis.
+- **Data Analysis**: Utilizing the graph neural network model, the system analyzes the data to identify patterns and insights.
+- **Prediction**: Based on the analysis, the system makes predictions, such as forecasting trends or identifying opportunities and threats within datasets.
+
+The state machine's logic is implemented in the `state_machine.py` file, which contains methods for each state and action. This allows the system to process complex queries, such as predicting Bitcoin prices at the end of 2024, by leveraging the trained graph neural network model and the structured data within Neo4j.
+
+### Predictive Analysis Process
+The predictive analysis component uses the graph neural network model to analyze data and make forecasts. The model is trained on datasets provided by the user, and it learns to recognize patterns and correlations that can be used to make predictions about future data points.
+
 ## Future Work and Known Limitations
 Future work on this project may include:
 - Expanding the model's language capabilities to handle more nuanced and complex language constructs.
