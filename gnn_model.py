@@ -1,5 +1,6 @@
 import spektral
 from spektral.layers import GCNConv
+from spektral.utils import normalized_laplacian, add_self_loops
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dropout, Dense
@@ -86,6 +87,10 @@ class GNNModel(Model):
         Returns:
         - A dictionary indicating the status of the training process.
         """
+        # Preprocess the adjacency matrix
+        adjacency_matrix = add_self_loops(adjacency_matrix)
+        adjacency_matrix = normalized_laplacian(adjacency_matrix)
+
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         loss_fn = tf.keras.losses.MeanSquaredError()
         for epoch in range(epochs):
