@@ -42,11 +42,12 @@ class Neo4jConnection:
 
     def retrieve_data(self):
         # Actual logic to retrieve data from the Neo4j database
-        print("Retrieving data from Neo4j...")
+        logging.info("Retrieving data from Neo4j...")
         query = "MATCH (n) RETURN n"
         result = self.query(query)
         data = []
-        if result is not None:
+        if result:
+            logging.info(f"Retrieved {len(result)} records from the database.")
             for record in result:
                 data.append(record['n'])
         else:
