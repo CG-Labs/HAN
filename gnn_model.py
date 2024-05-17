@@ -10,6 +10,10 @@ import os
 import sys
 
 class CustomGCNConv(GCNConv):
+    def __init__(self, units, **kwargs):
+        super(CustomGCNConv, self).__init__(units=units, **kwargs)
+        self.units = units
+
     def call(self, inputs, **kwargs):
         """
         Forward pass for the custom GCNConv layer.
