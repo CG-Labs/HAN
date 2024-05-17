@@ -80,7 +80,7 @@ The HAN project now includes a state machine designed to enhance system autonomy
 The state machine's logic is implemented in the `state_machine.py` file, which contains methods for each state and action. This allows the system to process complex queries, such as predicting Bitcoin prices at the end of 2024, by leveraging the trained graph neural network model and the structured data within Neo4j.
 
 ### Predictive Analysis Process
-The predictive analysis component uses the graph neural network model to analyze data and make forecasts. The model is trained on datasets provided by the user, and it learns to recognize patterns and correlations that can be used to make predictions about future data points.
+The predictive analysis component uses the graph neural network model to analyze data and make forecasts. The model is trained on datasets provided by the user, learning to recognize patterns and correlations that can be used to make predictions about future data points. The system is designed to handle various data formats, including CSV, DOC, and PDF, allowing for a wide range of input data types. Once trained, the model can be used to answer complex queries and make predictions, such as forecasting Bitcoin prices at the end of 2024, by leveraging the structured data within Neo4j and the insights gained from the analysis.
 
 ## Future Work and Known Limitations
 Future work on this project may include:

@@ -36,11 +36,11 @@ class GNNModel(Model):
         prediction = self.dense(embeddings)
         return {'prediction': prediction.numpy()[0]}
 
-    def train_model(self, data):
+    def train_model(self, data, epochs=200, learning_rate=0.01):
         # Train the GNN model with the provided data
         x, adjacency, labels = data
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
-        for epoch in range(200):
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        for epoch in range(epochs):
             with tf.GradientTape() as tape:
                 predictions = self.call((x, adjacency), training=True)
                 # Assuming labels are continuous values for regression

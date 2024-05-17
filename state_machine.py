@@ -12,7 +12,7 @@ neo4j_username = "neo4j"
 neo4j_password = "Devin2023!"
 
 class StateMachine:
-    def __init__(self):
+    def __init__(self, num_classes, num_features):
         self.states = ['initial', 'data_retrieval', 'data_analysis', 'prediction']
         self.transitions = {
             'initial': {
@@ -33,7 +33,7 @@ class StateMachine:
         }
         self.current_state = 'initial'
         self.neo4j_integration = Neo4jConnection(neo4j_url, neo4j_username, neo4j_password)
-        self.gnn_model = GNNModel()
+        self.gnn_model = GNNModel(num_classes=num_classes, num_features=num_features)
         self.data = None
         self.analysis_results = None
 
@@ -78,7 +78,9 @@ class StateMachine:
 
 # Example usage
 if __name__ == "__main__":
-    sm = StateMachine()
+    num_classes = 2  # Example value, should be set based on the actual task
+    num_features = 34  # Example value, should be set based on the actual data
+    sm = StateMachine(num_classes=num_classes, num_features=num_features)
     sm.transition('retrieve_data')
     sm.execute_action('retrieve_data')
     sm.transition('analyze_data')
