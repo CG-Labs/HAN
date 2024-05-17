@@ -5,6 +5,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dropout, Dense
 import numpy as np
 import pickle
+import os
 
 class GNNModel(Model):
     def __init__(self, num_classes, num_features, **kwargs):
@@ -96,21 +97,35 @@ class GNNModel(Model):
             print(f"Epoch {epoch}: Loss: {loss.numpy()}")
         return {'status': 'Model trained successfully'}
 
-# Load the feature matrix and adjacency matrix
-with open('feature_matrix.pkl', 'rb') as f:
-    feature_matrix = pickle.load(f)
+if __name__ == "__main__":
+    # Load the feature matrix and adjacency matrix
+    try:
+        with open('feature_matrix.pkl', 'rb') as f:
+            feature_matrix = pickle.load(f)
+    except FileNotFoundError:
+        print("Feature matrix file not found.")
+        exit(1)
 
-with open('adjacency_matrix.pkl', 'rb') as f:
-    adjacency_matrix = pickle.load(f)
+    try:
+        with open('adjacency_matrix.pkl', 'rb') as f:
+            adjacency_matrix = pickle.load(f)
+    except FileNotFoundError:
+        print("Adjacency matrix file not found.")
+        exit(1)
 
-# Load the labels for the training data
-with open('labels.pkl', 'rb') as f:
-    labels = pickle.load(f)
+    # Load the labels for the training data
+    try:
+        with open('labels.pkl', 'rb') as f:
+            labels = pickle.load(f)
+    except FileNotFoundError:
+        print("Labels file not found.")
+        exit(1)
 
-# Initialize the GNN model
-num_classes = 1  # For regression, we have one output
-num_features = feature_matrix.shape[1]
-gnn_model = GNNModel(num_classes=num_classes, num_features=num_features)
+    # Initialize the GNN model
+    num_classes = 1  # For regression, we have one output
+    num_features = feature_matrix.shape[1]
+    gnn_model = GNNModel(num_classes=num_classes, num_features=num_features)
 
-# Train the model
-gnn_model.train_model(feature_matrix, adjacency_matrix, labels)
+    # Train the model
+    training_status = gnn_model.train_model(feature_matrix, adjacency_matrix, labels)
+    print(training_status['status'])
