@@ -182,7 +182,7 @@ class GNNModel(Model):
         import pickle
 
         # Load the trained model
-        trained_model = self.load_trained_model('trained_gnn_model.json', 'trained_gnn_model_weights.h5')
+        trained_model = self.load_trained_model('trained_gnn_model.json', 'trained_gnn_model.h5')
 
         # Load the feature matrix
         try:
@@ -230,7 +230,7 @@ if __name__ == "__main__":
         gnn_model = GNNModel(num_classes=1, num_features=num_features)
 
         # Load the trained model architecture and weights
-        gnn_model.load_trained_model('trained_gnn_model.json', 'trained_gnn_model_weights.h5')
+        gnn_model.load_trained_model('trained_gnn_model.json', 'trained_gnn_model.h5')
 
         # Make a prediction
         prediction = gnn_model.predict_bitcoin_price('feature_matrix.pkl', 'adjacency_matrix.pkl', 'trained_gnn_model.json', scaler_path)
