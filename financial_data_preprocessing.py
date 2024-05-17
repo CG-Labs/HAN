@@ -106,8 +106,8 @@ def generate_labels(df, prediction_days=1):
     # Shift the 'Close' price column to create the target variable
     # representing the future price we want to predict
     labels = df['Close'].shift(-prediction_days).values
-    # Remove the last 'prediction_days' rows since they will not have labels
-    labels = labels[:-prediction_days]
+    # Fill 'nan' values using forward fill method
+    labels = pd.Series(labels).fillna(method='ffill').values
     return labels
 
 if __name__ == "__main__":

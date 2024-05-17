@@ -7,8 +7,40 @@ from tensorflow.keras.layers import Input, Dropout, Dense
 import numpy as np
 import pickle
 import os
+import sys
 
+class CustomGCNConv(GCNConv):
+    def call(self, inputs, **kwargs):
+        """
+        Forward pass for the custom GCNConv layer.
+
+        Parameters:
+        - inputs: list, containing the feature matrix and adjacency matrix.
+
+        Returns:
+        - The output of the layer.
+        """
+        # Ignore the mask parameter by not passing it to the parent call
+        return super().call(inputs)
+
+@tf.keras.utils.register_keras_serializable()
 class GNNModel(Model):
+    def get_config(self):
+        # Serialize the constructor parameters to a config dictionary
+        config = super(GNNModel, self).get_config()
+        config.update({
+            'num_classes': self.conv2.units,
+            'num_features': self.num_features
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        # Deserialize the constructor parameters from the config dictionary
+        num_classes = config.pop('num_classes')
+        num_features = config.pop('num_features')
+        return cls(num_classes=num_classes, num_features=num_features, **config)
+
     def __init__(self, num_classes, num_features, **kwargs):
         """
         Initialize the Graph Neural Network model with the given number of classes and features.
@@ -18,8 +50,8 @@ class GNNModel(Model):
         - num_features: int, the number of features in the input data.
         """
         super(GNNModel, self).__init__(**kwargs)
-        self.conv1 = GCNConv(16, activation='relu')
-        self.conv2 = GCNConv(num_classes, activation='softmax')
+        self.conv1 = CustomGCNConv(16, activation='relu')
+        self.conv2 = CustomGCNConv(num_classes, activation='linear')
         self.dropout = Dropout(0.5)
         self.num_features = num_features
         # Adding a dense layer for regression prediction
@@ -88,8 +120,7 @@ class GNNModel(Model):
         - A dictionary indicating the status of the training process.
         """
         # Preprocess the adjacency matrix
-        adjacency_matrix = add_self_loops(adjacency_matrix)
-        adjacency_matrix = normalized_laplacian(adjacency_matrix)
+        adjacency_matrix = spektral.utils.convolution.gcn_filter(adjacency_matrix)
 
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         loss_fn = tf.keras.losses.MeanSquaredError()
@@ -100,37 +131,124 @@ class GNNModel(Model):
             gradients = tape.gradient(loss, self.trainable_variables)
             optimizer.apply_gradients(zip(gradients, self.trainable_variables))
             print(f"Epoch {epoch}: Loss: {loss.numpy()}")
-        return {'status': 'Model trained successfully'}
+        self.save('trained_gnn_model.h5')
+        return {'status': 'Model trained successfully', 'model_path': 'trained_gnn_model.h5'}
+
+    def load_trained_model(self, model_path):
+        """
+        Load a trained GNN model from the specified path.
+
+        Parameters:
+        - model_path: str, the path to the saved model file.
+
+        Returns:
+        - The loaded GNN model.
+        """
+        with tf.keras.utils.custom_object_scope({'CustomGCNConv': CustomGCNConv, 'GNNModel': GNNModel}):
+            return tf.keras.models.load_model(model_path)
+
+    def predict_bitcoin_price(self, input_data_path, model_path, scaler_path):
+        """
+        Predict the Bitcoin price using the trained GNN model and the provided input data.
+
+        Parameters:
+        - input_data_path: str, the path to the input data file (CSV).
+        - model_path: str, the path to the saved trained model file (h5).
+        - scaler_path: str, the path to the saved scaler file (pkl).
+
+        Returns:
+        - prediction: float, the predicted Bitcoin price.
+        """
+        import pandas as pd
+        from sklearn.preprocessing import MinMaxScaler
+        import pickle
+
+        # Load the trained model
+        trained_model = self.load_trained_model(model_path)
+
+        # Load the input data
+        try:
+            input_data = pd.read_csv(input_data_path)
+        except FileNotFoundError:
+            print(f"The input data file {input_data_path} was not found.")
+            return None
+
+        # Load the scaler
+        try:
+            with open(scaler_path, 'rb') as f:
+                scaler = pickle.load(f)
+        except FileNotFoundError:
+            print(f"The scaler file {scaler_path} was not found.")
+            return None
+
+        # Preprocess the input data
+        input_data = input_data[['Close', 'Volume']]  # Select features
+        input_data = pd.DataFrame(scaler.transform(input_data), columns=input_data.columns)  # Normalize features
+        feature_matrix = input_data.values  # Construct feature matrix
+        adjacency_matrix = np.identity(len(input_data))  # Construct adjacency matrix
+
+        # Make prediction
+        analysis_results = trained_model.analyze_data((feature_matrix, adjacency_matrix))
+        prediction_result = trained_model.make_prediction(analysis_results)
+        prediction = prediction_result['prediction']
+
+        return prediction
 
 if __name__ == "__main__":
-    # Load the feature matrix and adjacency matrix
-    try:
-        with open('feature_matrix.pkl', 'rb') as f:
-            feature_matrix = pickle.load(f)
-    except FileNotFoundError:
-        print("Feature matrix file not found.")
-        exit(1)
+    # Default to training mode if no argument is provided
+    mode = 'train' if len(sys.argv) == 1 else sys.argv[1]
 
-    try:
-        with open('adjacency_matrix.pkl', 'rb') as f:
-            adjacency_matrix = pickle.load(f)
-    except FileNotFoundError:
-        print("Adjacency matrix file not found.")
-        exit(1)
+    if mode == 'predict':
+        # Paths to the necessary files
+        input_data_path = 'input_data_2024.csv'  # Path to the input data for end of 2024
+        model_path = 'trained_gnn_model.h5'
+        scaler_path = 'scaler.pkl'  # Path to the scaler used during training
 
-    # Load the labels for the training data
-    try:
-        with open('labels.pkl', 'rb') as f:
-            labels = pickle.load(f)
-    except FileNotFoundError:
-        print("Labels file not found.")
-        exit(1)
+        # Load the feature matrix to determine the number of features
+        try:
+            with open('feature_matrix.pkl', 'rb') as f:
+                feature_matrix = pickle.load(f)
+            num_features = feature_matrix.shape[1]
+        except FileNotFoundError:
+            print("Feature matrix file not found.")
+            exit(1)
 
-    # Initialize the GNN model
-    num_classes = 1  # For regression, we have one output
-    num_features = feature_matrix.shape[1]
-    gnn_model = GNNModel(num_classes=num_classes, num_features=num_features)
+        # Initialize the GNN model for prediction
+        gnn_model = GNNModel(num_classes=1, num_features=num_features)
 
-    # Train the model
-    training_status = gnn_model.train_model(feature_matrix, adjacency_matrix, labels)
-    print(training_status['status'])
+        # Make a prediction
+        prediction = gnn_model.predict_bitcoin_price(input_data_path, model_path, scaler_path)
+        print(f"Predicted Bitcoin price at the end of 2024: {prediction}")
+    else:
+        # Training mode
+        # Load the feature matrix and adjacency matrix
+        try:
+            with open('feature_matrix.pkl', 'rb') as f:
+                feature_matrix = pickle.load(f)
+        except FileNotFoundError:
+            print("Feature matrix file not found.")
+            exit(1)
+
+        try:
+            with open('adjacency_matrix.pkl', 'rb') as f:
+                adjacency_matrix = pickle.load(f)
+        except FileNotFoundError:
+            print("Adjacency matrix file not found.")
+            exit(1)
+
+        # Load the labels for the training data
+        try:
+            with open('labels.pkl', 'rb') as f:
+                labels = pickle.load(f)
+        except FileNotFoundError:
+            print("Labels file not found.")
+            exit(1)
+
+        # Initialize the GNN model
+        num_classes = 1  # For regression, we have one output
+        num_features = feature_matrix.shape[1]
+        gnn_model = GNNModel(num_classes=num_classes, num_features=num_features)
+
+        # Train the model
+        training_status = gnn_model.train_model(feature_matrix, adjacency_matrix, labels)
+        print(training_status['status'])
