@@ -37,20 +37,19 @@ def select_features(df):
     df_selected = df[['Close', 'Volume']]
     return df_selected
 
-def normalize_features(df):
+def normalize_features(df, scaler):
     """
     Normalize the features using MinMaxScaler.
 
     Parameters:
     - df: DataFrame, the selected features.
+    - scaler: MinMaxScaler, the scaler used for normalization.
 
     Returns:
     - df_normalized: DataFrame, the normalized features.
-    - scaler: MinMaxScaler, the scaler used for normalization.
     """
-    scaler = MinMaxScaler()
-    df_normalized = pd.DataFrame(scaler.fit_transform(df), columns=df.columns)
-    return df_normalized, scaler
+    df_normalized = pd.DataFrame(scaler.transform(df), columns=df.columns)
+    return df_normalized
 
 def construct_feature_matrix(df):
     """
@@ -110,32 +109,53 @@ def generate_labels(df, prediction_days=1):
     labels = pd.Series(labels).fillna(method='ffill').values
     return labels
 
+def prepare_input_data_for_prediction(input_data_path, scaler_path):
+    """
+    Prepare the input data for prediction by normalizing and constructing the feature matrix.
+
+    Parameters:
+    - input_data_path: str, the path to the input data CSV file.
+    - scaler_path: str, the path to the saved scaler pickle file.
+
+    Returns:
+    - feature_matrix: ndarray, the feature matrix for prediction.
+    - adjacency_matrix: ndarray, the adjacency matrix for prediction.
+    """
+    # Load the input data
+    input_data = load_data(input_data_path)
+    if input_data is None:
+        return None, None
+
+    # Load the scaler
+    try:
+        with open(scaler_path, 'rb') as f:
+            scaler = pickle.load(f)
+    except FileNotFoundError:
+        print(f"The scaler file {scaler_path} was not found.")
+        return None, None
+
+    # Select features
+    input_data_selected = select_features(input_data)
+
+    # Normalize features
+    input_data_normalized = normalize_features(input_data_selected, scaler)
+
+    # Construct feature matrix
+    feature_matrix = construct_feature_matrix(input_data_normalized)
+
+    # Construct adjacency matrix
+    adjacency_matrix = construct_adjacency_matrix(input_data_normalized)
+
+    return feature_matrix, adjacency_matrix
+
 if __name__ == "__main__":
     # Update the file path with the actual path to the downloaded Bitcoin historical data CSV file
     file_path = '/home/ubuntu/browser_downloads/BTC-USD.csv'
+    scaler_path = 'scaler.pkl'  # Path to the scaler used during training
 
-    # Load the data
-    df = load_data(file_path)
-    if df is not None:
-        # Select features
-        df_selected = select_features(df)
+    # Prepare input data for prediction
+    feature_matrix, adjacency_matrix = prepare_input_data_for_prediction(file_path, scaler_path)
 
-        # Normalize features
-        df_normalized, scaler = normalize_features(df_selected)
-
-        # Construct feature matrix
-        feature_matrix = construct_feature_matrix(df_normalized)
-
-        # Construct adjacency matrix
-        adjacency_matrix = construct_adjacency_matrix(df_normalized)
-
-        # Save the scaler for later use
-        save_data('scaler.pkl', scaler)
-
-        # Save the feature matrix and adjacency matrix for later use
-        save_data('feature_matrix.pkl', feature_matrix)
-        save_data('adjacency_matrix.pkl', adjacency_matrix)
-
-        # Generate and save labels for the training data
-        labels = generate_labels(df)
-        save_data('labels.pkl', labels)
+    # Save the feature matrix and adjacency matrix for prediction
+    save_data('input_data_2024_feature_matrix.pkl', feature_matrix)
+    save_data('input_data_2024_adjacency_matrix.pkl', adjacency_matrix)
