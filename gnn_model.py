@@ -135,21 +135,36 @@ class GNNModel(Model):
             gradients = tape.gradient(loss, self.trainable_variables)
             optimizer.apply_gradients(zip(gradients, self.trainable_variables))
             print(f"Epoch {epoch}: Loss: {loss.numpy()}")
-        self.save('trained_gnn_model.h5')
-        return {'status': 'Model trained successfully', 'model_path': 'trained_gnn_model.h5'}
 
-    def load_trained_model(self, model_path):
+        # Save the model architecture to a JSON file
+        model_json = self.to_json()
+        with open('trained_gnn_model.json', 'w') as json_file:
+            json_file.write(model_json)
+        # Save the weights to an HDF5 file
+        self.save_weights('trained_gnn_model.h5')
+
+        return {'status': 'Model trained successfully', 'model_path': 'trained_gnn_model.json', 'weights_path': 'trained_gnn_model.h5'}
+
+    def load_trained_model(self, model_json_path, model_weights_path):
         """
-        Load a trained GNN model from the specified path.
+        Load a trained GNN model from the specified JSON and HDF5 files.
 
         Parameters:
-        - model_path: str, the path to the saved model file.
+        - model_json_path: str, the path to the saved model JSON file.
+        - model_weights_path: str, the path to the saved model weights HDF5 file.
 
         Returns:
         - The loaded GNN model.
         """
-        with tf.keras.utils.custom_object_scope({'CustomGCNConv': CustomGCNConv, 'GNNModel': GNNModel}):
-            return tf.keras.models.load_model(model_path)
+        # Load the model architecture from JSON file
+        with open(model_json_path, 'r') as json_file:
+            model_json = json_file.read()
+        model = tf.keras.models.model_from_json(model_json, custom_objects={'CustomGCNConv': CustomGCNConv, 'GNNModel': GNNModel})
+
+        # Load the model weights from HDF5 file
+        model.load_weights(model_weights_path)
+
+        return model
 
     def predict_bitcoin_price(self, feature_matrix_path, adjacency_matrix_path, model_path, scaler_path):
         """
@@ -167,7 +182,7 @@ class GNNModel(Model):
         import pickle
 
         # Load the trained model
-        trained_model = self.load_trained_model(model_path)
+        trained_model = self.load_trained_model('trained_gnn_model.json', 'trained_gnn_model_weights.h5')
 
         # Load the feature matrix
         try:
@@ -214,8 +229,11 @@ if __name__ == "__main__":
         # Initialize the GNN model for prediction
         gnn_model = GNNModel(num_classes=1, num_features=num_features)
 
+        # Load the trained model architecture and weights
+        gnn_model.load_trained_model('trained_gnn_model.json', 'trained_gnn_model_weights.h5')
+
         # Make a prediction
-        prediction = gnn_model.predict_bitcoin_price('feature_matrix.pkl', 'adjacency_matrix.pkl', model_path, scaler_path)
+        prediction = gnn_model.predict_bitcoin_price('feature_matrix.pkl', 'adjacency_matrix.pkl', 'trained_gnn_model.json', scaler_path)
         print(f"Predicted Bitcoin price at the end of 2024: {prediction}")
     else:
         # Training mode
