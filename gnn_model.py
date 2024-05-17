@@ -151,45 +151,39 @@ class GNNModel(Model):
         with tf.keras.utils.custom_object_scope({'CustomGCNConv': CustomGCNConv, 'GNNModel': GNNModel}):
             return tf.keras.models.load_model(model_path)
 
-    def predict_bitcoin_price(self, input_data_path, model_path, scaler_path):
+    def predict_bitcoin_price(self, feature_matrix_path, adjacency_matrix_path, model_path, scaler_path):
         """
         Predict the Bitcoin price using the trained GNN model and the provided input data.
 
         Parameters:
-        - input_data_path: str, the path to the input data file (CSV).
+        - feature_matrix_path: str, the path to the feature matrix pickle file.
+        - adjacency_matrix_path: str, the path to the adjacency matrix pickle file.
         - model_path: str, the path to the saved trained model file (h5).
         - scaler_path: str, the path to the saved scaler file (pkl).
 
         Returns:
         - prediction: float, the predicted Bitcoin price.
         """
-        import pandas as pd
-        from sklearn.preprocessing import MinMaxScaler
         import pickle
 
         # Load the trained model
         trained_model = self.load_trained_model(model_path)
 
-        # Load the input data
+        # Load the feature matrix
         try:
-            input_data = pd.read_csv(input_data_path)
+            with open(feature_matrix_path, 'rb') as f:
+                feature_matrix = pickle.load(f)
         except FileNotFoundError:
-            print(f"The input data file {input_data_path} was not found.")
-            return None
+            print(f"The feature matrix file {feature_matrix_path} was not found.")
+            return "Feature matrix file not found."
 
-        # Load the scaler
+        # Load the adjacency matrix
         try:
-            with open(scaler_path, 'rb') as f:
-                scaler = pickle.load(f)
+            with open(adjacency_matrix_path, 'rb') as f:
+                adjacency_matrix = pickle.load(f)
         except FileNotFoundError:
-            print(f"The scaler file {scaler_path} was not found.")
-            return None
-
-        # Preprocess the input data
-        input_data = input_data[['Close', 'Volume']]  # Select features
-        input_data = pd.DataFrame(scaler.transform(input_data), columns=input_data.columns)  # Normalize features
-        feature_matrix = input_data.values  # Construct feature matrix
-        adjacency_matrix = np.identity(len(input_data))  # Construct adjacency matrix
+            print(f"The adjacency matrix file {adjacency_matrix_path} was not found.")
+            return "Adjacency matrix file not found."
 
         # Make prediction
         analysis_results = trained_model.analyze_data((feature_matrix, adjacency_matrix))
