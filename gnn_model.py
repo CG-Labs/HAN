@@ -3,6 +3,8 @@ from spektral.layers import GCNConv
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dropout, Dense
+import numpy as np
+import pickle
 
 class GNNModel(Model):
     def __init__(self, num_classes, num_features, **kwargs):
@@ -69,25 +71,46 @@ class GNNModel(Model):
         prediction = self.dense(embeddings)
         return {'prediction': prediction.numpy()[0]}
 
-    def train_model(self, data, epochs=200, learning_rate=0.01):
+    def train_model(self, feature_matrix, adjacency_matrix, labels, epochs=200, learning_rate=0.01):
         """
-        Train the GNN model with the provided data.
+        Train the GNN model with the provided feature matrix and adjacency matrix.
 
         Parameters:
-        - data: tuple, containing the feature matrix, adjacency matrix, and labels.
+        - feature_matrix: ndarray, the feature matrix for the GNN.
+        - adjacency_matrix: ndarray, the adjacency matrix for the GNN.
+        - labels: ndarray, the labels for the training data.
         - epochs: int, the number of epochs to train the model.
         - learning_rate: float, the learning rate for the optimizer.
 
         Returns:
         - A dictionary indicating the status of the training process.
         """
-        x, adjacency, labels = data
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        loss_fn = tf.keras.losses.MeanSquaredError()
         for epoch in range(epochs):
             with tf.GradientTape() as tape:
-                predictions = self.call((x, adjacency), training=True)
-                # Assuming labels are continuous values for regression
-                loss = tf.keras.losses.MeanSquaredError()(labels, predictions)
+                predictions = self.call((feature_matrix, adjacency_matrix), training=True)
+                loss = loss_fn(labels, predictions)
             gradients = tape.gradient(loss, self.trainable_variables)
             optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+            print(f"Epoch {epoch}: Loss: {loss.numpy()}")
         return {'status': 'Model trained successfully'}
+
+# Load the feature matrix and adjacency matrix
+with open('feature_matrix.pkl', 'rb') as f:
+    feature_matrix = pickle.load(f)
+
+with open('adjacency_matrix.pkl', 'rb') as f:
+    adjacency_matrix = pickle.load(f)
+
+# Load the labels for the training data
+with open('labels.pkl', 'rb') as f:
+    labels = pickle.load(f)
+
+# Initialize the GNN model
+num_classes = 1  # For regression, we have one output
+num_features = feature_matrix.shape[1]
+gnn_model = GNNModel(num_classes=num_classes, num_features=num_features)
+
+# Train the model
+gnn_model.train_model(feature_matrix, adjacency_matrix, labels)

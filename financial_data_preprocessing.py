@@ -81,9 +81,38 @@ def construct_adjacency_matrix(df):
     adjacency_matrix = np.identity(len(df))
     return adjacency_matrix
 
+def save_data(file_name, data):
+    """
+    Save data to a pickle file.
+
+    Parameters:
+    - file_name: str, the name of the file to save the data to.
+    - data: object, the data to save.
+    """
+    with open(file_name, 'wb') as f:
+        pickle.dump(data, f)
+
+def generate_labels(df, prediction_days=1):
+    """
+    Generate labels for the training data.
+
+    Parameters:
+    - df: DataFrame, the loaded data.
+    - prediction_days: int, the number of days ahead to predict.
+
+    Returns:
+    - labels: ndarray, the labels for the training data.
+    """
+    # Shift the 'Close' price column to create the target variable
+    # representing the future price we want to predict
+    labels = df['Close'].shift(-prediction_days).values
+    # Remove the last 'prediction_days' rows since they will not have labels
+    labels = labels[:-prediction_days]
+    return labels
+
 if __name__ == "__main__":
     # Update the file path with the actual path to the downloaded Bitcoin historical data CSV file
-    file_path = '~/browser_downloads/BTC-USD.csv'
+    file_path = '/home/ubuntu/browser_downloads/BTC-USD.csv'
 
     # Load the data
     df = load_data(file_path)
@@ -101,7 +130,12 @@ if __name__ == "__main__":
         adjacency_matrix = construct_adjacency_matrix(df_normalized)
 
         # Save the scaler for later use
-        with open('scaler.pkl', 'wb') as f:
-            pickle.dump(scaler, f)
+        save_data('scaler.pkl', scaler)
 
-        # These matrices can now be used to train the GNN model
+        # Save the feature matrix and adjacency matrix for later use
+        save_data('feature_matrix.pkl', feature_matrix)
+        save_data('adjacency_matrix.pkl', adjacency_matrix)
+
+        # Generate and save labels for the training data
+        labels = generate_labels(df)
+        save_data('labels.pkl', labels)
