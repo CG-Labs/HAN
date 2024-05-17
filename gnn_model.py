@@ -215,7 +215,7 @@ if __name__ == "__main__":
         gnn_model = GNNModel(num_classes=1, num_features=num_features)
 
         # Make a prediction
-        prediction = gnn_model.predict_bitcoin_price(input_data_path, model_path, scaler_path)
+        prediction = gnn_model.predict_bitcoin_price('feature_matrix.pkl', 'adjacency_matrix.pkl', model_path, scaler_path)
         print(f"Predicted Bitcoin price at the end of 2024: {prediction}")
     else:
         # Training mode
