@@ -17,15 +17,106 @@ author={Xiao, Wang and Houye, Ji and Chuan, Shi and  Bai, Wang and Peng, Cui and
 journal={WWW},
 year={2019}
 }
+||||||| parent of 73d3c53c (Update model, state machine, and import script; add structured CV data)
+## Visualization
+To visualize the model's embeddings:
+1. Run the `ex_acm3025.py` script to train the model and generate embeddings.
+2. Use the `tsne_visualization.py` script to create a t-SNE plot of the embeddings.
+
+## Installation and Usage
+To install and set up the HAN project with the new features, follow these steps:
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/CG-Labs/HAN.git
+   ```
+2. Navigate to the cloned repository directory:
+   ```
+   cd HAN
+   ```
+3. Install the required dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+4. Follow the Neo4j Setup instructions above to configure the graph database.
+5. Place any CV documents you wish to process in the `data` directory.
+6. Run the `process_cv_data.py` script to preprocess the CV data.
+7. Run the `ex_acm3025.py` script to train the model.
+8. Use the `tsne_visualization.py` script to visualize the embeddings with t-SNE.
+
+## Workflow
+The workflow has been updated to include the new steps for CV processing and Neo4j integration. Refer to the updated mermaid graph below for a visual representation of the workflow.
+
+```mermaid
+graph TD;
+    A[CV Document] -->|Process| B[Feature Vectors & Adjacency Matrix];
+    B -->|Integrate| C[Neo4j Database];
+    C --> D[Model Training];
+    D --> E[Model Evaluation];
+    E --> F[t-SNE Visualization];
+=======
+## Visualization
+To visualize the model's embeddings:
+1. Run the `ex_acm3025.py` script to train the model and generate embeddings.
+2. Use the `tsne_visualization.py` script to create a t-SNE plot of the embeddings.
+
+## Installation and Usage
+To install and set up the HAN project with the new features, including Neo4j integration and state machine functionality, follow these steps:
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/CG-Labs/HAN.git
+   ```
+2. Navigate to the cloned repository directory:
+   ```
+   cd HAN
+   ```
+3. Install the required dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+4. Follow the Neo4j Setup instructions above to configure the graph database.
+5. Place any CV documents you wish to process in the `data` directory.
+6. Run the `process_cv_data.py` script to preprocess the CV data. This script takes a CV document as input and outputs feature vectors and an adjacency matrix.
+   ```
+   python process_cv_data.py --cv <path_to_cv_document>
+   ```
+7. Run the `gnn_model.py` script to initialize the graph neural network model. This script requires the feature vectors and adjacency matrix as input.
+   ```
+   python gnn_model.py --features <path_to_feature_vectors> --adjacency <path_to_adjacency_matrix>
+   ```
+8. Execute the `state_machine.py` script to process user queries and perform actions based on the system's state. This script accepts user queries as input and outputs the system's response.
+   ```
+   python state_machine.py --query "<user_query>"
+   ```
+
+For detailed usage of each script, including the expected input and output, refer to the comments within the script files.
+
+## Workflow
+The workflow has been updated to include the new steps for CV processing and Neo4j integration. Refer to the updated mermaid graph below for a visual representation of the workflow.
+
+```mermaid
+graph TD;
+    A[CV Document] -->|Process| B[Feature Vectors & Adjacency Matrix];
+    B -->|Integrate| C[Neo4j Database];
+    C --> D[Model Training];
+    D --> E[Model Evaluation];
+    E --> F[t-SNE Visualization];
 ```
 
-# How to preprocess DBLP?
+## Requirements
+The `requirements.txt` file lists all the necessary packages to run the HAN project with the new features. Install all the dependencies listed in this file to ensure proper functionality of the project.
 
-Demo: preprocess_dblp.py
+## Testing Procedures and Results
+To ensure the integrity and performance of the HAN model, comprehensive testing procedures have been implemented:
+1. Unit tests for individual components (data preprocessing, model training, Neo4j integration) are located in the `tests` directory. To run these tests, use the following command:
+   ```
+   python -m unittest discover -s tests
+   ```
+2. Integration tests to verify the end-to-end workflow from CV processing to graph database integration. These tests can be found in the `tests/integration` directory.
+3. Performance tests to evaluate the model's accuracy and efficiency with different sizes of datasets. The results are documented in the `tests/performance` directory.
 
-# Slides
-
-https://github.com/Jhy1993/HAN/blob/master/0516纪厚业%20www%20ppt%20copy.pdf
+The test results indicate that the model performs well with the provided datasets and is robust to variations in CV document formats. The t-SNE visualization provides a clear representation of the model's ability to differentiate between various features in the data. Detailed test reports can be found in the `tests/reports` directory.
 
 ## State Machine and Predictive Analysis
 The HAN project now includes a state machine designed to enhance system autonomy by interpreting user input, understanding intent, and orchestrating tasks. The state machine operates in several states, including data retrieval, data analysis, and prediction, to autonomously execute actions based on user queries and data insights.
