@@ -41,11 +41,17 @@ class Neo4jConnection:
         return response
 
     def retrieve_data(self):
-        # Placeholder for the retrieve_data method
-        # This method should contain the logic to retrieve data from the Neo4j database
-        # For now, it will return a dummy data structure
+        # Actual logic to retrieve data from the Neo4j database
         print("Retrieving data from Neo4j...")
-        return {'dummy_data': True}
+        query = "MATCH (n) RETURN n"
+        result = self.query(query)
+        data = []
+        if result is not None:
+            for record in result:
+                data.append(record['n'])
+        else:
+            logging.error("Data retrieval failed, query returned no results.")
+        return data
 
 def create_nodes_and_relationships(feature_vectors, adjacency_matrix):
     # Connect to Neo4j
