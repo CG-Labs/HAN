@@ -1,0 +1,1 @@
+{"module": null, "class_name": "GNNModel", "config": {"name": "gnn_model", "trainable": true, "dtype": "float32", "num_classes": 1, "num_features": 2}, "registered_name": "Custom>GNNModel"}
