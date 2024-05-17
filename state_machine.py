@@ -13,6 +13,20 @@ neo4j_username = "neo4j"
 neo4j_password = "Devin2023!"
 
 class StateMachine:
+    """
+    The StateMachine class manages the different states of the application and transitions between them based on user actions.
+
+    It integrates with the Neo4j database for data retrieval, the GNNModel for data analysis and prediction, and the NaturalLanguageUnderstanding class for interpreting user input.
+
+    Attributes:
+        states (list): A list of the possible states the machine can be in.
+        transitions (dict): A dictionary where each key is a state and the value is another dictionary mapping actions to resulting states.
+        current_state (str): The current state of the machine.
+        neo4j_integration (Neo4jConnection): An instance of the Neo4jConnection class for interacting with the Neo4j database.
+        gnn_model (GNNModel): An instance of the GNNModel class for analyzing data and making predictions.
+        data (any): The data retrieved from the Neo4j database.
+        analysis_results (any): The results of analyzing the data with the GNNModel.
+    """
     def __init__(self, num_classes, num_features):
         self.states = ['initial', 'data_retrieval', 'data_analysis', 'prediction', 'idle', 'processing', 'executing', 'completed']
         self.transitions = {
@@ -52,6 +66,15 @@ class StateMachine:
         self.analysis_results = None
 
     def transition(self, action):
+        """
+        Transition the state machine to a new state based on the given action.
+
+        Parameters:
+        - action (str): The action to be executed, which causes a state transition.
+
+        If the action is valid for the current state, the state is updated. Otherwise,
+        an error message is printed indicating the invalid action.
+        """
         if action in self.transitions[self.current_state]:
             self.current_state = self.transitions[self.current_state][action]
             print(f"Transitioned to {self.current_state}")
@@ -59,7 +82,19 @@ class StateMachine:
             print(f"Action {action} is not valid from state {self.current_state}")
 
     def execute_action(self, action, data=None, analysis_results=None):
-        # Execute actions based on the current state and user input
+        """
+        Execute actions based on the current state and user input.
+
+        Parameters:
+        - action (str): The action to be executed.
+        - data (any, optional): The data to be used for analysis.
+        - analysis_results (any, optional): The results of data analysis to be used for prediction.
+
+        Depending on the current state, this method may connect to the Neo4j database to retrieve data,
+        use the GNN model to analyze data, or make predictions based on analyzed data.
+        If the action is not valid for the current state, an error message is printed.
+        """
+        # Execution logic based on the current state...
         if self.current_state == 'data_retrieval':
             # Connect to Neo4j database using credentials
             # Retrieve relevant data for analysis
@@ -91,7 +126,17 @@ class StateMachine:
             print(f"No execution logic defined for action {action} in state {self.current_state}")
 
     def process_input(self, user_input):
-        # Use the NaturalLanguageUnderstanding class to process user input
+        """
+        Process user input to determine the appropriate action and initiate state transitions.
+
+        Parameters:
+        - user_input (str): The raw input from the user.
+
+        This method uses the NaturalLanguageUnderstanding class to parse the input,
+        extract the intent, and determine the corresponding action. If the action is valid
+        for the current state, a state transition is initiated.
+        """
+        # Processing logic using NaturalLanguageUnderstanding...
         nlu = NaturalLanguageUnderstanding()
         processed_input = nlu.parse_input(user_input)
         intent = nlu.extract_intent(processed_input)
@@ -103,7 +148,13 @@ class StateMachine:
             print(f"Unrecognized or invalid action for the current state: {self.current_state}")
 
     def reset(self):
-        # Reset the state machine to the initial state
+        """
+        Reset the state machine to the initial state and clear any stored data and analysis results.
+
+        This method reinitializes the state machine, setting the current state to 'initial'
+        and clearing the 'data' and 'analysis_results' attributes.
+        """
+        # Reset logic...
         self.current_state = 'initial'
         self.data = None
         self.analysis_results = None
