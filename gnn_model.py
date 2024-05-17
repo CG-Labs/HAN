@@ -36,10 +36,9 @@ class GNNModel(Model):
         - The output of the last layer of the model.
         """
         x, adjacency = inputs
-        # Ensure that the mask is not None; if not used, it should be handled within the layer
-        x = self.conv1([x, adjacency], mask=None)
+        x = self.conv1([x, adjacency])
         x = self.dropout(x, training=training)
-        x = self.conv2([x, adjacency], mask=None)
+        x = self.conv2([x, adjacency])
         # Using the dense layer to output a single value for regression
         x = self.dense(x)
         return x
