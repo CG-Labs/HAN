@@ -10,8 +10,8 @@ import os
 import sys
 
 class CustomGCNConv(GCNConv):
-    def __init__(self, units, **kwargs):
-        super(CustomGCNConv, self).__init__(units=units, **kwargs)
+    def __init__(self, channels, units, **kwargs):
+        super(CustomGCNConv, self).__init__(channels=channels, units=units, **kwargs)
         self.units = units
 
     def call(self, inputs, **kwargs):
@@ -54,8 +54,8 @@ class GNNModel(Model):
         - num_features: int, the number of features in the input data.
         """
         super(GNNModel, self).__init__(**kwargs)
-        self.conv1 = CustomGCNConv(16, activation='relu')
-        self.conv2 = CustomGCNConv(num_classes, activation='linear')
+        self.conv1 = CustomGCNConv(channels=num_features, units=16, activation='relu')
+        self.conv2 = CustomGCNConv(channels=16, units=num_classes, activation='linear')
         self.dropout = Dropout(0.5)
         self.num_features = num_features
         # Adding a dense layer for regression prediction
