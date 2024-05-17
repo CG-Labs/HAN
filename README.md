@@ -4,7 +4,7 @@ https://github.com/Jhy1993/Representation-Learning-on-Heterogeneous-Graph
 
 The source code of Heterogeneous Graph Attention Network (WWW-2019).
 
-The source code is based on [GAT](https://github.com/PetarV-/GAT) 
+The source code is based on [GAT](https://github.com/PetarV-/GAT)
 
 # Reference
 
@@ -19,7 +19,7 @@ year={2019}
 }
 ```
 
-# How to preprocess DBLP? 
+# How to preprocess DBLP?
 
 Demo: preprocess_dblp.py
 
@@ -27,7 +27,24 @@ Demo: preprocess_dblp.py
 
 https://github.com/Jhy1993/HAN/blob/master/0516纪厚业%20www%20ppt%20copy.pdf
 
-# Q&A
+## State Machine and Predictive Analysis
+The HAN project now includes a state machine designed to enhance system autonomy by interpreting user input, understanding intent, and orchestrating tasks. The state machine operates in several states, including data retrieval, data analysis, and prediction, to autonomously execute actions based on user queries and data insights.
+
+### State Machine Functionality
+- **Data Retrieval**: The system retrieves relevant data from the Neo4j database, preparing it for analysis.
+- **Data Analysis**: Utilizing the graph neural network model, the system analyzes the data to identify patterns and insights.
+- **Prediction**: Based on the analysis, the system makes predictions, such as forecasting trends or identifying opportunities and threats within datasets.
+
+The state machine's logic is implemented in the `state_machine.py` file, which contains methods for each state and action. This allows the system to process complex queries, such as predicting Bitcoin prices at the end of 2024, by leveraging the trained graph neural network model and the structured data within Neo4j.
+
+### Predictive Analysis Process
+The predictive analysis component uses the graph neural network model to analyze data and make forecasts. The model is trained on datasets provided by the user, and it learns to recognize patterns and correlations that can be used to make predictions about future data points.
+
+## Future Work and Known Limitations
+Future work on this project may include:
+- Expanding the model's language capabilities to handle more nuanced and complex language constructs.
+- Enhancing the visualization component to offer more interactive and detailed views of the graph data.
+- Improving the scalability of the Neo4j integration to handle larger datasets more efficiently.
 
 1. ACM_3025 in our experiments is based on the preprocessed version ACM in other paper (\data\ACM\ACM.mat). Subject is just like Neural Network, Multi-Object Optimization and Face Recognition. In ACM3025, PLP is actually PSP. You can find it in our code.
 2. In ACM, train+val+test < node_num. That is because our model is a semi-supervised model which only need a few labels to optimize our model. The num of node can be found in meta-path based adj mat.
@@ -41,14 +58,14 @@ embeddings for previous unseen nodes or even unseen graph" means the propose HAN
 # Datasets
 
 Preprocessed ACM can be found in:
-https://pan.baidu.com/s/1V2iOikRqHPtVvaANdkzROw 
-提取码：50k2 
+https://pan.baidu.com/s/1V2iOikRqHPtVvaANdkzROw
+提取码：50k2
 
 https://bupteducn-my.sharepoint.com/:u:/g/personal/jhy1993_bupt_edu_cn/EfLZcHE2e4xBplCVnzcJbQYBurNVOCk7ZIne2YsO3jKbSw?e=vMQ18v
 
 Preprocessed DBLP can be found in:
-https://pan.baidu.com/s/1Qr2e97MofXsBhUvQqgJqDg 
-提取码：6b3h  
+https://pan.baidu.com/s/1Qr2e97MofXsBhUvQqgJqDg
+提取码：6b3h
 
 https://bupteducn-my.sharepoint.com/:u:/g/personal/jhy1993_bupt_edu_cn/Ef6A6m2njZ5CqkTN8QcwU8QBuENpB7eDVJRnsV9cWXWmsA?e=wlErKk
 
@@ -63,5 +80,3 @@ python ex_acm3025.py
 
 # HAN in DGL
 https://github.com/dmlc/dgl/tree/master/examples/pytorch/han
-
-
