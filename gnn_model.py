@@ -264,6 +264,8 @@ class GNNModel(Model):
             print(f"The feature matrix file {feature_matrix_path} was not found.")
             return "Feature matrix file not found."
 
+        print("Loaded feature matrix shape:", feature_matrix.shape)
+
         # Load the adjacency matrix
         try:
             with open(adjacency_matrix_path, 'rb') as f:
