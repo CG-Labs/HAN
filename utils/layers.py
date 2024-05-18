@@ -1,43 +1,43 @@
 import numpy as np
 import tensorflow as tf
 
-conv1d = tf.layers.conv1d
+conv1d = tf.keras.layers.Conv1D
 
 
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
               return_coef=False):
     """[summary]
-    
+
     [description]
-    
+
     Arguments:
         seq {[type]} -- shape=(batch_size, nb_nodes, fea_size))
 
     """
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
-            seq = tf.nn.dropout(seq, 1.0 - in_drop)
-        seq_fts = tf.layers.conv1d(seq, out_sz, 1, use_bias=False)
+            seq = tf.nn.dropout(seq, rate=in_drop)
+        seq_fts = conv1d(filters=out_sz, kernel_size=1, use_bias=False)(seq)
 
-        
-        f_1 = tf.layers.conv1d(seq_fts, 1, 1)
-        f_2 = tf.layers.conv1d(seq_fts, 1, 1)
-        
+
+        f_1 = conv1d(filters=1, kernel_size=1)(seq_fts)
+        f_2 = conv1d(filters=1, kernel_size=1)(seq_fts)
+
         logits = f_1 + tf.transpose(f_2, [0, 2, 1])
         coefs = tf.nn.softmax(tf.nn.leaky_relu(logits) + bias_mat)
 
         if coef_drop != 0.0:
-            coefs = tf.nn.dropout(coefs, 1.0 - coef_drop)
+            coefs = tf.nn.dropout(coefs, rate=coef_drop)
         if in_drop != 0.0:
-            seq_fts = tf.nn.dropout(seq_fts, 1.0 - in_drop)
+            seq_fts = tf.nn.dropout(seq_fts, rate=in_drop)
 
         vals = tf.matmul(coefs, seq_fts)
-        ret = tf.contrib.layers.bias_add(vals)
+        ret = tf.keras.layers.BiasAdd()(vals)
 
         # residual connection
         if residual:
             if seq.shape[-1] != ret.shape[-1]:
-                ret = ret + conv1d(seq, ret.shape[-1], 1)  # activation
+                ret = ret + conv1d(filters=ret.shape[-1], kernel_size=1)(seq)  # activation
             else:
                 seq_fts = ret + seq
         if return_coef:
@@ -56,25 +56,25 @@ def attn_head_const_1(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=
     adj_mat = 1.0 - bias_mat / -1e9
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
-            seq = tf.nn.dropout(seq, 1.0 - in_drop)
-        seq_fts = tf.layers.conv1d(seq, out_sz, 1, use_bias=False)
-        
+            seq = tf.nn.dropout(seq, rate=in_drop)
+        seq_fts = conv1d(filters=out_sz, kernel_size=1, use_bias=False)(seq)
 
-        logits = adj_mat 
+
+        logits = adj_mat
         coefs = tf.nn.softmax(tf.nn.leaky_relu(logits) + bias_mat)
 
         if coef_drop != 0.0:
-            coefs = tf.nn.dropout(coefs, 1.0 - coef_drop)
+            coefs = tf.nn.dropout(coefs, rate=coef_drop)
         if in_drop != 0.0:
-            seq_fts = tf.nn.dropout(seq_fts, 1.0 - in_drop)
+            seq_fts = tf.nn.dropout(seq_fts, rate=in_drop)
 
         vals = tf.matmul(coefs, seq_fts)
-        ret = tf.contrib.layers.bias_add(vals)
+        ret = tf.keras.layers.BiasAdd()(vals)
 
         # residual connection
         if residual:
             if seq.shape[-1] != ret.shape[-1]:
-                ret = ret + conv1d(seq, ret.shape[-1], 1)  # activation
+                ret = ret + conv1d(filters=ret.shape[-1], kernel_size=1)(seq)  # activation
             else:
                 seq_fts = ret + seq
 
@@ -85,13 +85,13 @@ def attn_head_const_1(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=
 def sp_attn_head(seq, out_sz, adj_mat, activation, nb_nodes, in_drop=0.0, coef_drop=0.0, residual=False):
     with tf.name_scope('sp_attn'):
         if in_drop != 0.0:
-            seq = tf.nn.dropout(seq, 1.0 - in_drop)
+            seq = tf.nn.dropout(seq, rate=in_drop)
 
-        seq_fts = tf.layers.conv1d(seq, out_sz, 1, use_bias=False)
+        seq_fts = conv1d(filters=out_sz, kernel_size=1, use_bias=False)(seq)
 
         # simplest self-attention possible
-        f_1 = tf.layers.conv1d(seq_fts, 1, 1)
-        f_2 = tf.layers.conv1d(seq_fts, 1, 1)
+        f_1 = conv1d(filters=1, kernel_size=1)(seq_fts)
+        f_2 = conv1d(filters=1, kernel_size=1)(seq_fts)
         logits = tf.sparse_add(adj_mat * f_1, adj_mat *
                                tf.transpose(f_2, [0, 2, 1]))
         lrelu = tf.SparseTensor(indices=logits.indices,
@@ -101,11 +101,10 @@ def sp_attn_head(seq, out_sz, adj_mat, activation, nb_nodes, in_drop=0.0, coef_d
 
         if coef_drop != 0.0:
             coefs = tf.SparseTensor(indices=coefs.indices,
-                                    values=tf.nn.dropout(
-                                        coefs.values, 1.0 - coef_drop),
+                                    values=tf.nn.dropout(coefs.values, rate=coef_drop),
                                     dense_shape=coefs.dense_shape)
         if in_drop != 0.0:
-            seq_fts = tf.nn.dropout(seq_fts, 1.0 - in_drop)
+            seq_fts = tf.nn.dropout(seq_fts, rate=in_drop)
 
         # As tf.sparse_tensor_dense_matmul expects its arguments to have rank-2,
         # here we make an assumption that our input is of batch size 1, and reshape appropriately.
@@ -115,12 +114,12 @@ def sp_attn_head(seq, out_sz, adj_mat, activation, nb_nodes, in_drop=0.0, coef_d
         vals = tf.sparse_tensor_dense_matmul(coefs, seq_fts)
         vals = tf.expand_dims(vals, axis=0)
         vals.set_shape([1, nb_nodes, out_sz])
-        ret = tf.contrib.layers.bias_add(vals)
+        ret = tf.keras.layers.BiasAdd()(vals)
 
         # residual connection
         if residual:
             if seq.shape[-1] != ret.shape[-1]:
-                ret = ret + conv1d(seq, ret.shape[-1], 1)  # activation
+                ret = ret + conv1d(filters=ret.shape[-1], kernel_size=1)(seq)  # activation
             else:
                 seq_fts = ret + seq
 
@@ -142,9 +141,9 @@ def SimpleAttLayer(inputs, attention_size, time_major=False, return_alphas=False
     hidden_size = inputs.shape[2].value  # D value - hidden size of the RNN layer
 
     # Trainable parameters
-    w_omega = tf.Variable(tf.random_normal([hidden_size, attention_size], stddev=0.1))
-    b_omega = tf.Variable(tf.random_normal([attention_size], stddev=0.1))
-    u_omega = tf.Variable(tf.random_normal([attention_size], stddev=0.1))
+    w_omega = tf.Variable(tf.random.normal([hidden_size, attention_size], stddev=0.1))
+    b_omega = tf.Variable(tf.random.normal([attention_size], stddev=0.1))
+    u_omega = tf.Variable(tf.random.normal([attention_size], stddev=0.1))
 
     with tf.name_scope('v'):
         # Applying fully connected layer with non-linear activation to each of the B*T timestamps;
