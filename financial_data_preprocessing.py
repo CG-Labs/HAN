@@ -53,7 +53,7 @@ def normalize_features(df, scaler):
 
 def construct_feature_matrix(df):
     """
-    Construct the feature matrix from the DataFrame.
+    Construct the feature matrix from the DataFrame and pad it to have a number of rows that is a multiple of 16.
 
     Parameters:
     - df: DataFrame, the normalized features.
@@ -62,6 +62,12 @@ def construct_feature_matrix(df):
     - feature_matrix: ndarray, the feature matrix.
     """
     feature_matrix = df.values
+    # Calculate the number of padding rows needed to reach the next multiple of 16
+    padding_rows = (-len(df)) % 16
+    if padding_rows > 0:
+        # Pad the feature matrix with zeros
+        padding = np.zeros((padding_rows, feature_matrix.shape[1]))
+        feature_matrix = np.vstack([feature_matrix, padding])
     return feature_matrix
 
 def construct_adjacency_matrix(df):
