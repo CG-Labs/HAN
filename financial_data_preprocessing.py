@@ -64,13 +64,19 @@ def construct_feature_matrix(df):
     feature_matrix = df.values
     # Calculate the number of padding rows needed to reach the next multiple of 16
     padding_rows = (-len(df)) % 16
+    # Pad the feature matrix with zeros if padding is required
     if padding_rows > 0:
-        # Pad the feature matrix with zeros
         padding = np.zeros((padding_rows, feature_matrix.shape[1]))
         feature_matrix = np.vstack([feature_matrix, padding])
+
+    print("Padded feature matrix shape:", feature_matrix.shape)
+
+    # Confirm the shape of the feature matrix is a multiple of 16
+    assert feature_matrix.shape[0] % 16 == 0, "The feature matrix does not have a number of rows that is a multiple of 16."
+
     return feature_matrix
 
-def construct_adjacency_matrix(df):
+def construct_adjacency_matrix(size):
     """
     Construct the adjacency matrix for the graph neural network.
 
@@ -78,12 +84,12 @@ def construct_adjacency_matrix(df):
     treating each time step as disconnected.
 
     Parameters:
-    - df: DataFrame, the normalized features.
+    - size: int, the size of the padded feature matrix.
 
     Returns:
     - adjacency_matrix: ndarray, the adjacency matrix.
     """
-    adjacency_matrix = np.identity(len(df))
+    adjacency_matrix = np.identity(size)
     return adjacency_matrix
 
 def save_data(file_name, data):
@@ -150,7 +156,7 @@ def prepare_input_data_for_prediction(input_data_path, scaler_path):
     feature_matrix = construct_feature_matrix(input_data_normalized)
 
     # Construct adjacency matrix
-    adjacency_matrix = construct_adjacency_matrix(input_data_normalized)
+    adjacency_matrix = construct_adjacency_matrix(feature_matrix.shape[0])
 
     return feature_matrix, adjacency_matrix
 
@@ -163,5 +169,5 @@ if __name__ == "__main__":
     feature_matrix, adjacency_matrix = prepare_input_data_for_prediction(file_path, scaler_path)
 
     # Save the feature matrix and adjacency matrix for prediction
-    save_data('input_data_2024_feature_matrix.pkl', feature_matrix)
-    save_data('input_data_2024_adjacency_matrix.pkl', adjacency_matrix)
+    save_data('feature_matrix.pkl', feature_matrix)
+    save_data('adjacency_matrix.pkl', adjacency_matrix)
