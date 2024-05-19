@@ -33,7 +33,8 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
             seq_fts = tf.keras.layers.Dropout(1.0 - in_drop)(seq_fts, training=True)
 
         vals = tf.keras.layers.Dot(axes=(1, 1))([coefs, seq_fts])
-        ret = tf.keras.backend.bias_add(vals)
+        bias = tf.Variable(tf.zeros([out_sz]), name="bias")
+        ret = tf.keras.backend.bias_add(vals, bias)
 
         # residual connection
         if residual:
