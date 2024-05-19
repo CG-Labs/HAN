@@ -75,8 +75,10 @@ end_date = '2024-12-31'    # End date for fetching historical data
 bitcoin_data = fetch_bitcoin_data(start_date, end_date)
 preprocessed_data = preprocess_data(bitcoin_data)
 
-# Model prediction code
-# Define the model input layer using tf.keras.Input
+# Define the number of timesteps and features for the model input
+timesteps = 10  # The number of timesteps the model looks back for making a prediction
+features = 1    # The number of features used for prediction, here it's just the normalized 'Close' price
+
 ftr_in = tf.keras.Input(shape=(timesteps, features), name='ftr_in')
 
 # Define the model using the functional API
