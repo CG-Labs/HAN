@@ -55,7 +55,7 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
 
         logits = f_1 + tf.keras.layers.Permute((2, 1))(f_2)
         leaky_relu = tf.keras.layers.LeakyReLU()(logits)
-        coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + bias_mat)
+        coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + tf.broadcast_to(bias_mat, tf.shape(leaky_relu)))
 
         if coef_drop != 0.0:
             coefs = tf.keras.layers.Dropout(1.0 - coef_drop)(coefs, training=True)
