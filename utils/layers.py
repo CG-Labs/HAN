@@ -23,7 +23,7 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         f_1 = conv1d(filters=1, kernel_size=1)(seq_fts)
         f_2 = conv1d(filters=1, kernel_size=1)(seq_fts)
 
-        logits = f_1 + tf.transpose(f_2, [0, 2, 1])
+        logits = f_1 + tf.keras.layers.Permute((2, 1))(f_2)
         coefs = tf.nn.softmax(tf.nn.leaky_relu(logits) + bias_mat)
 
         if coef_drop != 0.0:
