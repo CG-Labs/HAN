@@ -44,8 +44,8 @@ class BroadcastToLayer(tf.keras.layers.Layer):
 class ReshapeBiasMatLayer(tf.keras.layers.Layer):
     def call(self, inputs):
         seq_fts, bias_mat = inputs
-        # Use tf.keras.backend.shape to obtain the dynamic shape of seq_fts
-        nb_nodes = tf.keras.backend.shape(seq_fts)[1]
+        # Use tf.keras.backend.shape to obtain the dynamic shape of bias_mat
+        nb_nodes = tf.keras.backend.shape(bias_mat)[1]
         # Perform the reshape operation on bias_mat using the obtained shape
         bias_mat_reshaped = tf.reshape(bias_mat, (1, nb_nodes, nb_nodes))
         return bias_mat_reshaped
@@ -76,7 +76,7 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         reshape_bias_mat_layer = ReshapeBiasMatLayer()
         bias_mat_reshaped = reshape_bias_mat_layer([seq_fts, bias_mat])
 
-        broadcast_to_layer = BroadcastToLayer(list(bias_mat_reshaped.shape))
+        broadcast_to_layer = BroadcastToLayer(target_shape=tf.keras.backend.int_shape(seq_fts)[1:])
         coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + broadcast_to_layer(bias_mat_reshaped))
 
         if coef_drop != 0.0:
