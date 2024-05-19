@@ -4,12 +4,12 @@ import tensorflow as tf
 conv1d = tf.keras.layers.Conv1D
 
 class BiasAddLayer(tf.keras.layers.Layer):
-    def __init__(self, out_sz, **kwargs):
+    def __init__(self, **kwargs):
         super(BiasAddLayer, self).__init__(**kwargs)
-        self.out_sz = out_sz
 
     def build(self, input_shape):
-        self.bias = self.add_weight(shape=(self.out_sz,),
+        # Set the bias size to match the last dimension of the input shape
+        self.bias = self.add_weight(shape=(input_shape[-1],),
                                     initializer='zeros',
                                     name='bias')
         super(BiasAddLayer, self).build(input_shape)
@@ -21,8 +21,16 @@ class ELULayer(tf.keras.layers.Layer):
     def call(self, inputs):
         return tf.nn.elu(inputs)
 
+class SqueezeLayer(tf.keras.layers.Layer):
+    def call(self, inputs):
+        return tf.squeeze(inputs)
+
+    def compute_output_shape(self, input_shape):
+        # Remove all singleton dimensions from the input shape, skip None dimensions
+        return tuple(dim for dim in input_shape if dim is not None and dim != 1)
+
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
-              return_coef=False):
+               return_coef=False):
     """[summary]
 
     [description]
@@ -34,8 +42,13 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
             seq = tf.keras.layers.Dropout(1.0 - in_drop)(seq, training=True)
-        seq_fts = conv1d(filters=out_sz, kernel_size=1, use_bias=False)(seq)
-
+        # Ensure seq is three-dimensional before passing to conv1d
+        # Reshape seq to have 3 dimensions (batch_size, steps, input_dim)
+        if len(seq.shape) == 4 and seq.shape[-1] == 1:
+            seq = tf.reshape(seq, (-1, seq.shape[1], seq.shape[2]))
+        elif len(seq.shape) == 2:
+            seq = tf.reshape(seq, (-1, seq.shape[0], seq.shape[1]))
+        seq_fts = conv1d(filters=seq.shape[-1], kernel_size=1, use_bias=False)(seq)
 
         f_1 = conv1d(filters=1, kernel_size=1)(seq_fts)
         f_2 = conv1d(filters=1, kernel_size=1)(seq_fts)
@@ -52,7 +65,7 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         vals = tf.keras.layers.Dot(axes=(1, 1))([coefs, seq_fts])
 
         # Replace the direct bias_add call with an instance of the custom layer
-        bias_add_layer = BiasAddLayer(out_sz)
+        bias_add_layer = BiasAddLayer()
         ret = bias_add_layer(vals)
 
         # residual connection
