@@ -3,6 +3,19 @@ import tensorflow as tf
 
 conv1d = tf.keras.layers.Conv1D
 
+class BiasAddLayer(tf.keras.layers.Layer):
+    def __init__(self, out_sz, **kwargs):
+        super(BiasAddLayer, self).__init__(**kwargs)
+        self.out_sz = out_sz
+
+    def build(self, input_shape):
+        self.bias = self.add_weight(shape=(self.out_sz,),
+                                    initializer='zeros',
+                                    name='bias')
+        super(BiasAddLayer, self).build(input_shape)
+
+    def call(self, inputs):
+        return tf.keras.backend.bias_add(inputs, self.bias)
 
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
               return_coef=False):
@@ -33,8 +46,10 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
             seq_fts = tf.keras.layers.Dropout(1.0 - in_drop)(seq_fts, training=True)
 
         vals = tf.keras.layers.Dot(axes=(1, 1))([coefs, seq_fts])
-        bias = tf.Variable(tf.zeros([out_sz]), name="bias")
-        ret = tf.keras.backend.bias_add(vals, bias)
+
+        # Replace the direct bias_add call with an instance of the custom layer
+        bias_add_layer = BiasAddLayer(out_sz)
+        ret = bias_add_layer(vals)
 
         # residual connection
         if residual:
