@@ -31,10 +31,9 @@ class SqueezeLayer(tf.keras.layers.Layer):
 
 class BroadcastToLayer(tf.keras.layers.Layer):
     def call(self, inputs, shape):
-        # Broadcast the inputs to match the shape of the reference tensor
-        # The shape parameter is expected to be a tensor with the target shape
+        # Store the target shape as an attribute of the layer instance
+        self.target_shape = tf.shape(shape)
         input_shape = tf.shape(inputs)
-        target_shape = tf.shape(shape)
         # Squeeze out the singleton dimensions from inputs if necessary
         squeezed_inputs = tf.cond(
             tf.logical_and(tf.equal(tf.rank(inputs), 4), tf.equal(tf.gather(input_shape, -2), 1)),
@@ -42,8 +41,14 @@ class BroadcastToLayer(tf.keras.layers.Layer):
             lambda: inputs
         )
         # Generate the broadcasted shape dynamically
-        broadcast_shape = tf.concat(([input_shape[0]], target_shape[1:]), axis=0)
+        broadcast_shape = tf.concat(([input_shape[0]], self.target_shape[1:]), axis=0)
         return tf.broadcast_to(squeezed_inputs, broadcast_shape)
+
+    def compute_output_shape(self, input_shape):
+        # The output shape will have the same batch size as the input
+        # and the remaining dimensions will match the target shape
+        # The target shape is stored as an attribute when the layer is called
+        return (input_shape[0],) + self.target_shape[1:]
 
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
                return_coef=False):
