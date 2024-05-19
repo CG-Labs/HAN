@@ -64,13 +64,8 @@ class HeteGAT_multi(BaseGAttN):
 
         out = []
         for i in range(n_heads[-1]):
-      
-            out.append(tf.layers.dense(final_embed, nb_classes, activation=None))
-        #     out.append(layers.attn_head(h_1, bias_mat=bias_mat,
-        #                                 out_sz=nb_classes, activation=lambda x: x,
-        #                                 in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
+            out.append(tf.keras.layers.Dense(nb_classes, activation=None)(final_embed))
         logits = tf.add_n(out) / n_heads[-1]
-        # logits_list.append(logits)
         print('de')
 
         logits = tf.expand_dims(logits, axis=0)
@@ -201,5 +196,3 @@ class HeteGAT(BaseGAttN):
             return logits, final_embed, att_val, coef_list
         else:
             return logits, final_embed, att_val
-        
- 
