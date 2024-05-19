@@ -30,17 +30,19 @@ class SqueezeLayer(tf.keras.layers.Layer):
         return tuple(dim for dim in input_shape if dim is not None and dim != 1)
 
 class BroadcastToLayer(tf.keras.layers.Layer):
-    def __init__(self, target_shape, **kwargs):
+    def __init__(self, out_sz, **kwargs):
         super(BroadcastToLayer, self).__init__(**kwargs)
-        # Ensure target_shape is a tuple to handle dynamic shapes
-        self.target_shape = tuple(target_shape)
+        self.out_sz = out_sz
+        self.target_shape = None
 
     def build(self, input_shape):
-        # The build method is used to create the weights of the layer
+        # Calculate the target_shape based on the input shape
+        # Assuming the input_shape is [batch_size, time_steps, features]
+        self.target_shape = (input_shape[0], input_shape[1], self.out_sz)
         super(BroadcastToLayer, self).build(input_shape)
 
     def call(self, inputs):
-        # Use the static target_shape determined during the build phase for broadcasting
+        # Use the static target_shape for broadcasting
         return tf.broadcast_to(inputs, self.target_shape)
 
     def compute_output_shape(self, input_shape):
@@ -49,8 +51,7 @@ class BroadcastToLayer(tf.keras.layers.Layer):
         return (input_shape[0],) + self.target_shape[1:]
 
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
-               return_coef=False):
-
+              return_coef=False):
 
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
@@ -69,9 +70,8 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         logits = f_1 + tf.keras.layers.Permute((2, 1))(f_2)
         leaky_relu = tf.keras.layers.LeakyReLU()(logits)
 
-        # Assuming the shape of seq_fts is known and can be used to determine the target_shape
-        seq_fts_shape = tf.shape(seq_fts)
-        broadcast_to_layer = BroadcastToLayer(target_shape=(seq_fts_shape[0], seq_fts_shape[1], out_sz))
+        # Instantiate BroadcastToLayer with the static output size
+        broadcast_to_layer = BroadcastToLayer(out_sz)
         coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + broadcast_to_layer(bias_mat))
 
         if coef_drop != 0.0:
@@ -90,7 +90,7 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
             if seq.shape[-1] != ret.shape[-1]:
                 ret = ret + conv1d(filters=ret.shape[-1], kernel_size=1)(seq)  # activation
             else:
-                seq_fts = ret + seq
+                ret = ret + seq
 
         # Replace the direct call to the activation function with an instance of ELULayer
         elu_layer = ELULayer()
