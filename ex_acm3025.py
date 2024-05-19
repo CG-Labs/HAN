@@ -86,7 +86,7 @@ adjacency_matrix = np.eye(timesteps, k=1) + np.eye(timesteps, k=-1)
 adjacency_matrix = np.array([adjacency_matrix])  # Add batch dimension
 
 # Compute the bias matrix using the adjacency matrix
-bias_mat = process.adj_to_bias(adjacency_matrix, [timesteps], nhood=1)
+bias_mat = process.adj_to_bias(adjacency_matrix, [adjacency_matrix.shape[1]], nhood=1)
 
 logits = GAT.inference(ftr_in, nb_classes=1, nb_nodes=preprocessed_data.shape[1], training=False,
                        attn_drop=0.6, ffd_drop=0.6, bias_mat=bias_mat, hid_units=hid_units,
