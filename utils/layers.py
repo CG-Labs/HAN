@@ -17,6 +17,10 @@ class BiasAddLayer(tf.keras.layers.Layer):
     def call(self, inputs):
         return tf.keras.backend.bias_add(inputs, self.bias)
 
+class ELULayer(tf.keras.layers.Layer):
+    def call(self, inputs):
+        return tf.nn.elu(inputs)
+
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
               return_coef=False):
     """[summary]
@@ -57,19 +61,15 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
                 ret = ret + conv1d(filters=ret.shape[-1], kernel_size=1)(seq)  # activation
             else:
                 seq_fts = ret + seq
-        if return_coef:
-            return activation(ret), coefs
-        else:
-            return activation(ret)  # activation
 
+        # Replace the direct call to the activation function with an instance of ELULayer
+        elu_layer = ELULayer()
+        if return_coef:
+            return elu_layer(ret), coefs
+        else:
+            return elu_layer(ret)  # Apply ELU activation using the custom layer
 
 def attn_head_const_1(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False):
-    """[summary]
-
-    [description]
-
-
-    """
     adj_mat = 1.0 - bias_mat / -1e9
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
@@ -95,9 +95,9 @@ def attn_head_const_1(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=
             else:
                 seq_fts = ret + seq
 
-        return activation(ret)  # activation
-
-
+        # Replace the direct call to the activation function with an instance of ELULayer
+        elu_layer = ELULayer()
+        return elu_layer(ret)  # Apply ELU activation using the custom layer
 
 def sp_attn_head(seq, out_sz, adj_mat, activation, nb_nodes, in_drop=0.0, coef_drop=0.0, residual=False):
     with tf.name_scope('sp_attn'):
