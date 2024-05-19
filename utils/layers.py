@@ -36,21 +36,19 @@ class BroadcastToLayer(tf.keras.layers.Layer):
         input_shape = tf.shape(inputs)
         target_shape = tf.shape(shape)
         # Squeeze out the singleton dimensions from inputs if necessary
-        squeezed_inputs = tf.squeeze(inputs, axis=[-2]) if len(input_shape) == 4 and input_shape[-2] == 1 else inputs
+        squeezed_inputs = tf.cond(
+            tf.logical_and(tf.equal(tf.rank(inputs), 4), tf.equal(tf.gather(input_shape, -2), 1)),
+            lambda: tf.squeeze(inputs, axis=[-2]),
+            lambda: inputs
+        )
         # Generate the broadcasted shape dynamically
         broadcast_shape = tf.concat(([input_shape[0]], target_shape[1:]), axis=0)
         return tf.broadcast_to(squeezed_inputs, broadcast_shape)
 
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
                return_coef=False):
-    """[summary]
 
-    [description]
 
-    Arguments:
-        seq {[type]} -- shape=(batch_size, nb_nodes, fea_size))
-
-    """
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
             seq = tf.keras.layers.Dropout(1.0 - in_drop)(seq, training=True)
