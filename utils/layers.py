@@ -41,6 +41,20 @@ class BroadcastToLayer(tf.keras.layers.Layer):
     def compute_output_shape(self, input_shape):
         return self.target_shape
 
+class ReshapeBiasMatLayer(tf.keras.layers.Layer):
+    def call(self, inputs):
+        seq_fts, bias_mat = inputs
+        # Use tf.keras.backend.shape to obtain the dynamic shape of seq_fts
+        nb_nodes = tf.keras.backend.shape(seq_fts)[1]
+        # Perform the reshape operation on bias_mat using the obtained shape
+        bias_mat_reshaped = tf.reshape(bias_mat, (1, nb_nodes, nb_nodes))
+        return bias_mat_reshaped
+
+    def compute_output_shape(self, input_shape):
+        seq_fts_shape, bias_mat_shape = input_shape
+        nb_nodes = seq_fts_shape[1]
+        return (1, nb_nodes, nb_nodes)
+
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
               return_coef=False):
     with tf.name_scope('my_attn'):
@@ -58,12 +72,12 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         logits = f_1 + tf.keras.layers.Permute((2, 1))(f_2)
         leaky_relu = tf.keras.layers.LeakyReLU()(logits)
 
-        # Reshape bias_mat to match the shape required for broadcasting with leaky_relu
-        bias_mat_shape = tf.keras.backend.int_shape(leaky_relu)
-        bias_mat = tf.reshape(bias_mat, (1, bias_mat_shape[1], bias_mat_shape[2]))
+        # Reshape bias_mat to match the shape required for broadcasting with seq_fts
+        reshape_bias_mat_layer = ReshapeBiasMatLayer()
+        bias_mat_reshaped = reshape_bias_mat_layer([seq_fts, bias_mat])
 
-        broadcast_to_layer = BroadcastToLayer(list(bias_mat.shape))
-        coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + broadcast_to_layer(bias_mat))
+        broadcast_to_layer = BroadcastToLayer(list(bias_mat_reshaped.shape))
+        coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + broadcast_to_layer(bias_mat_reshaped))
 
         if coef_drop != 0.0:
             coefs = tf.keras.layers.Dropout(1.0 - coef_drop)(coefs, training=True)
