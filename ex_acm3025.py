@@ -173,14 +173,16 @@ class DataGenerator(tf.keras.utils.Sequence):
 
         return X, y, mask
 
-# Define the model using the functional API
-model = HeteGAT_multi(nb_classes=nb_classes, nb_nodes=nb_nodes, hid_units=hid_units, n_heads=n_heads,
-                      attn_drop=0.6, ffd_drop=0.6, activation=tf.nn.elu, residual=residual)
+# Instantiate the model and call the inference method
+logits, final_embed, att_val = HeteGAT_multi.inference(inputs_list=fea_list, nb_classes=nb_classes, nb_nodes=nb_nodes, training=False, attn_drop=0.6, ffd_drop=0.6, bias_mat_list=biases_list, hid_units=hid_units, n_heads=n_heads, activation=tf.nn.elu, residual=residual, mp_att_size=128)
 
-# Compile the model with optimizer and loss function
+# Create a Keras model using the logits returned by the inference method
+model = tf.keras.Model(inputs=fea_list, outputs=logits)
+
+# Compile the Keras model with optimizer and loss function
 model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
               loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
-              weighted_metrics=['accuracy'])
+              metrics=['accuracy'])
 
 # Prepare the data generators for training and validation
 train_data = DataGenerator(fea_list, biases_list, y_train, train_mask, batch_size)

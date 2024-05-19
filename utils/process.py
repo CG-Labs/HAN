@@ -19,8 +19,8 @@ def adj_to_bias(adj, sizes, nhood=1):
         for _ in range(nhood):
             mt[g] = np.matmul(mt[g], (adj[g] + np.eye(adj.shape[1])))
         print("Debug: sizes[g] =", sizes[g], "mt[g].shape =", mt[g].shape)
-        for i in range(sizes[g] - 1):  # Adjusted loop bound
-            for j in range(sizes[g] - 1):  # Adjusted loop bound
+        for i in range(adj.shape[1]):  # Adjusted loop bound to match adj matrix size
+            for j in range(adj.shape[1]):  # Adjusted loop bound to match adj matrix size
                 if np.any(mt[g][i][j] > 0.0):
                     mt[g][i][j] = 1.0
     return -1e9 * (1.0 - mt)
