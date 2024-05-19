@@ -71,8 +71,9 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         logits = f_1 + tf.keras.layers.Permute((2, 1))(f_2)
         leaky_relu = tf.keras.layers.LeakyReLU()(logits)
 
-        # Use BroadcastToLayer to broadcast bias_mat to the shape of leaky_relu
-        broadcast_to_layer = BroadcastToLayer(target_shape=tf.shape(leaky_relu))
+        # Assuming the shape of seq_fts is known and can be used to determine the target_shape
+        seq_fts_shape = tf.shape(seq_fts)
+        broadcast_to_layer = BroadcastToLayer(target_shape=(seq_fts_shape[0], seq_fts_shape[1], out_sz))
         coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + broadcast_to_layer(bias_mat))
 
         if coef_drop != 0.0:
