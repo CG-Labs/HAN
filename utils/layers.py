@@ -30,25 +30,21 @@ class SqueezeLayer(tf.keras.layers.Layer):
         return tuple(dim for dim in input_shape if dim is not None and dim != 1)
 
 class BroadcastToLayer(tf.keras.layers.Layer):
-    def __init__(self, out_sz, **kwargs):
+    def __init__(self, target_shape, **kwargs):
         super(BroadcastToLayer, self).__init__(**kwargs)
-        self.out_sz = out_sz
-        self.target_shape = None
+        self.target_shape = target_shape
 
     def build(self, input_shape):
-        # Calculate the target_shape based on the input shape
-        # Assuming the input_shape is [batch_size, time_steps, features]
-        self.target_shape = (input_shape[0], input_shape[1], self.out_sz)
+        # No dynamic shape calculation needed, target_shape is provided
         super(BroadcastToLayer, self).build(input_shape)
 
     def call(self, inputs):
-        # Use the static target_shape for broadcasting
+        # Use the provided target_shape for broadcasting
         return tf.broadcast_to(inputs, self.target_shape)
 
     def compute_output_shape(self, input_shape):
-        # The output shape will have the same batch size as the input
-        # and the remaining dimensions will match the target shape
-        return (input_shape[0],) + self.target_shape[1:]
+        # The output shape will match the provided target shape
+        return self.target_shape
 
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
               return_coef=False):
@@ -71,7 +67,7 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         leaky_relu = tf.keras.layers.LeakyReLU()(logits)
 
         # Instantiate BroadcastToLayer with the static output size
-        broadcast_to_layer = BroadcastToLayer(out_sz)
+        broadcast_to_layer = BroadcastToLayer(bias_mat.shape.as_list())
         coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + broadcast_to_layer(bias_mat))
 
         if coef_drop != 0.0:
