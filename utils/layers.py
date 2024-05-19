@@ -35,9 +35,11 @@ class BroadcastToLayer(tf.keras.layers.Layer):
         # The shape parameter is expected to be a tensor with the target shape
         input_shape = tf.shape(inputs)
         target_shape = tf.shape(shape)
+        # Squeeze out the singleton dimensions from inputs if necessary
+        squeezed_inputs = tf.squeeze(inputs, axis=[-2]) if len(input_shape) == 4 and input_shape[-2] == 1 else inputs
         # Generate the broadcasted shape dynamically
         broadcast_shape = tf.concat(([input_shape[0]], target_shape[1:]), axis=0)
-        return tf.broadcast_to(inputs, broadcast_shape)
+        return tf.broadcast_to(squeezed_inputs, broadcast_shape)
 
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
                return_coef=False):
