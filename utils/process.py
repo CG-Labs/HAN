@@ -20,7 +20,7 @@ def adj_to_bias(adj, sizes, nhood=1):
             mt[g] = np.matmul(mt[g], (adj[g] + np.eye(adj.shape[1])))
         for i in range(sizes[g]):
             for j in range(sizes[g]):
-                if mt[g][i][j] > 0.0:
+                if np.any(mt[g][i][j] > 0.0):
                     mt[g][i][j] = 1.0
     return -1e9 * (1.0 - mt)
 
