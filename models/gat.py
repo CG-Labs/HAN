@@ -4,6 +4,13 @@ import tensorflow as tf
 from utils import layers
 from models.base_gattn import BaseGAttN
 
+class ConcatLayer(tf.keras.layers.Layer):
+    def __init__(self, axis=-1, **kwargs):
+        super(ConcatLayer, self).__init__(**kwargs)
+        self.axis = axis
+
+    def call(self, inputs):
+        return tf.concat(inputs, axis=self.axis)
 
 class GAT(BaseGAttN):
     def inference(inputs, nb_classes, nb_nodes, training, attn_drop, ffd_drop,
@@ -13,7 +20,7 @@ class GAT(BaseGAttN):
             attns.append(layers.attn_head(inputs, bias_mat=bias_mat,
                                           out_sz=hid_units[0], activation=activation,
                                           in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
-        h_1 = tf.concat(attns, axis=-1)
+        h_1 = ConcatLayer(axis=-1)(attns)
         for i in range(1, len(hid_units)):
             h_old = h_1
             attns = []
@@ -21,7 +28,7 @@ class GAT(BaseGAttN):
                 attns.append(layers.attn_head(h_1, bias_mat=bias_mat,
                                               out_sz=hid_units[i], activation=activation,
                                               in_drop=ffd_drop, coef_drop=attn_drop, residual=residual))
-            h_1 = tf.concat(attns, axis=-1)
+            h_1 = ConcatLayer(axis=-1)(attns)
         out = []
         for i in range(n_heads[-1]):
             out.append(layers.attn_head(h_1, bias_mat=bias_mat,
@@ -43,7 +50,7 @@ class HeteGAT_multi(BaseGAttN):
                 attns.append(layers.attn_head(inputs, bias_mat=bias_mat,
                                               out_sz=hid_units[0], activation=activation,
                                               in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
-            h_1 = tf.concat(attns, axis=-1)
+            h_1 = ConcatLayer(axis=-1)(attns)
 
             for i in range(1, len(hid_units)):
                 h_old = h_1
@@ -54,10 +61,10 @@ class HeteGAT_multi(BaseGAttN):
                                                   activation=activation,
                                                   in_drop=ffd_drop,
                                                   coef_drop=attn_drop, residual=residual))
-                h_1 = tf.concat(attns, axis=-1)
+                h_1 = ConcatLayer(axis=-1)(attns)
             embed_list.append(tf.expand_dims(tf.squeeze(h_1), axis=1))
 
-        multi_embed = tf.concat(embed_list, axis=1)
+        multi_embed = ConcatLayer(axis=1)(embed_list)
         final_embed, att_val = layers.SimpleAttLayer(multi_embed, mp_att_size,
                                                      time_major=False,
                                                      return_alphas=True)
@@ -86,7 +93,7 @@ class HeteGAT_no_coef(BaseGAttN):
                                                   out_sz=hid_units[0], activation=activation,
                                                   in_drop=ffd_drop, coef_drop=attn_drop, residual=False,
                                                   return_coef=return_coef))
-            h_1 = tf.concat(attns, axis=-1)
+            h_1 = ConcatLayer(axis=-1)(attns)
             for i in range(1, len(hid_units)):
                 h_old = h_1
                 attns = []
@@ -98,12 +105,12 @@ class HeteGAT_no_coef(BaseGAttN):
                                                   in_drop=ffd_drop,
                                                   coef_drop=attn_drop,
                                                   residual=residual))
-                h_1 = tf.concat(attns, axis=-1)
+                h_1 = ConcatLayer(axis=-1)(attns)
             embed_list.append(tf.expand_dims(tf.squeeze(h_1), axis=1))
         # att for metapath
         # prepare shape for SimpleAttLayer
         # print('att for mp')
-        multi_embed = tf.concat(embed_list, axis=1)
+        multi_embed = ConcatLayer(axis=1)(embed_list)
         final_embed, att_val = layers.SimpleAttLayer(multi_embed, mp_att_size,
                                                      time_major=False,
                                                      return_alphas=True)
