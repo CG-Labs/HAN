@@ -31,9 +31,13 @@ class SqueezeLayer(tf.keras.layers.Layer):
 
 class BroadcastToLayer(tf.keras.layers.Layer):
     def call(self, inputs, shape):
-        # Broadcast the inputs to the static shape of the reference tensor
-        target_shape = shape.get_shape().as_list()
-        return tf.broadcast_to(inputs, target_shape)
+        # Broadcast the inputs to match the shape of the reference tensor
+        # The shape parameter is expected to be a tensor with the target shape
+        input_shape = tf.shape(inputs)
+        target_shape = tf.shape(shape)
+        # Generate the broadcasted shape dynamically
+        broadcast_shape = tf.concat(([input_shape[0]], target_shape[1:]), axis=0)
+        return tf.broadcast_to(inputs, broadcast_shape)
 
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
                return_coef=False):
