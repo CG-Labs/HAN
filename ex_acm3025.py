@@ -81,20 +81,22 @@ features = 1    # The number of features used for prediction, here it's just the
 
 ftr_in = tf.keras.Input(shape=(timesteps, features), name='ftr_in')
 
-# Define the model using the functional API
-gat_model = GAT(hid_units=hid_units, n_heads=n_heads, nb_classes=1, nb_nodes=preprocessed_data.shape[1],
-                attn_drop=0.6, ffd_drop=0.6, activation=tf.nn.elu, residual=False)
+# Create a simple chain-like adjacency matrix for the Bitcoin data
+adjacency_matrix = np.eye(timesteps, k=1) + np.eye(timesteps, k=-1)
+adjacency_matrix = np.array([adjacency_matrix])  # Add batch dimension
 
-# Assuming the model has a 'call' method to make predictions
-predictions = gat_model(ftr_in, training=False)
+# Compute the bias matrix using the adjacency matrix
+bias_mat = process.adj_to_bias(adjacency_matrix, [timesteps], nhood=1)
+
+logits = GAT.inference(ftr_in, nb_classes=1, nb_nodes=preprocessed_data.shape[1], training=False,
+                       attn_drop=0.6, ffd_drop=0.6, bias_mat=bias_mat, hid_units=hid_units,
+                       n_heads=n_heads, activation=tf.nn.elu, residual=False)
 
 # Create a Keras model
-model = tf.keras.Model(inputs=ftr_in, outputs=predictions)
+model = tf.keras.Model(inputs=ftr_in, outputs=logits)
 
 # Run the model to get the predictions
 predictions = model.predict(preprocessed_data)
-
-# The predictions variable now contains the Bitcoin price predictions
 
 import scipy.sparse as sp
 
