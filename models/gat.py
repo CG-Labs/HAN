@@ -12,6 +12,10 @@ class ConcatLayer(tf.keras.layers.Layer):
     def call(self, inputs):
         return tf.concat(inputs, axis=self.axis)
 
+class AddLayer(tf.keras.layers.Layer):
+    def call(self, inputs):
+        return tf.add_n(inputs)
+
 class GAT(BaseGAttN):
     def inference(inputs, nb_classes, nb_nodes, training, attn_drop, ffd_drop,
                   bias_mat, hid_units, n_heads, activation=tf.nn.elu, residual=False):
@@ -34,7 +38,7 @@ class GAT(BaseGAttN):
             out.append(layers.attn_head(h_1, bias_mat=bias_mat,
                                         out_sz=nb_classes, activation=lambda x: x,
                                         in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
-        logits = tf.add_n(out) / n_heads[-1]
+        logits = AddLayer()([out]) / n_heads[-1]
 
         return logits
 
@@ -72,7 +76,7 @@ class HeteGAT_multi(BaseGAttN):
         out = []
         for i in range(n_heads[-1]):
             out.append(tf.keras.layers.Dense(nb_classes, activation=None)(final_embed))
-        logits = tf.add_n(out) / n_heads[-1]
+        logits = AddLayer()([out]) / n_heads[-1]
         print('de')
 
         logits = tf.expand_dims(logits, axis=0)
@@ -122,7 +126,7 @@ class HeteGAT_no_coef(BaseGAttN):
         #     out.append(layers.attn_head(h_1, bias_mat=bias_mat,
         #                                 out_sz=nb_classes, activation=lambda x: x,
         #                                 in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
-        logits = tf.add_n(out) / n_heads[-1]
+        logits = AddLayer()([out]) / n_heads[-1]
         # logits_list.append(logits)
         print('de')
         logits = tf.expand_dims(logits, axis=0)
@@ -196,7 +200,7 @@ class HeteGAT(BaseGAttN):
         #     out.append(layers.attn_head(h_1, bias_mat=bias_mat,
         #                                 out_sz=nb_classes, activation=lambda x: x,
         #                                 in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
-        logits = tf.add_n(out) / n_heads[-1]
+        logits = AddLayer()([out]) / n_heads[-1]
         # logits_list.append(logits)
         logits = tf.expand_dims(logits, axis=0)
         if return_coef:

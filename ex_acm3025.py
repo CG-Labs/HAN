@@ -99,6 +99,17 @@ model = tf.keras.Model(inputs=ftr_in, outputs=logits)
 predictions = model.predict(preprocessed_data)
 
 import scipy.sparse as sp
+# Define the feature list and other related variables before their usage
+fea_list = [preprocessed_data]  # Assuming preprocessed_data is the feature list
+adj_list = [adjacency_matrix]  # Assuming adjacency_matrix is the adjacency list
+# Placeholder for labels and masks, need to be defined based on the actual data and requirements
+y_train = np.array([[0]])  # Placeholder
+y_val = np.array([[0]])    # Placeholder
+y_test = np.array([[0]])   # Placeholder
+train_mask = np.array([True])  # Placeholder
+val_mask = np.array([True])    # Placeholder
+test_mask = np.array([True])   # Placeholder
+
 
 nb_nodes = fea_list[0].shape[0]
 ft_size = fea_list[0].shape[1]
