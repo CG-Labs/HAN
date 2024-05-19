@@ -40,10 +40,8 @@ class BroadcastToLayer(tf.keras.layers.Layer):
         super(BroadcastToLayer, self).build(input_shape)
 
     def call(self, inputs):
-        # Generate the broadcasted shape dynamically
-        input_shape = tf.shape(inputs)
-        broadcast_shape = tf.concat(([input_shape[0]], self.target_shape[1:]), axis=0)
-        return tf.broadcast_to(inputs, broadcast_shape)
+        # Use the static target_shape determined during the build phase for broadcasting
+        return tf.broadcast_to(inputs, self.target_shape)
 
     def compute_output_shape(self, input_shape):
         # The output shape will have the same batch size as the input
