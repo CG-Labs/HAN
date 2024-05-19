@@ -30,24 +30,24 @@ class SqueezeLayer(tf.keras.layers.Layer):
         return tuple(dim for dim in input_shape if dim is not None and dim != 1)
 
 class BroadcastToLayer(tf.keras.layers.Layer):
-    def call(self, inputs, shape):
-        # Store the target shape as an attribute of the layer instance
-        self.target_shape = tf.shape(shape)
-        input_shape = tf.shape(inputs)
-        # Squeeze out the singleton dimensions from inputs if necessary
-        squeezed_inputs = tf.cond(
-            tf.logical_and(tf.equal(tf.rank(inputs), 4), tf.equal(tf.gather(input_shape, -2), 1)),
-            lambda: tf.squeeze(inputs, axis=[-2]),
-            lambda: inputs
-        )
+    def __init__(self, target_shape, **kwargs):
+        super(BroadcastToLayer, self).__init__(**kwargs)
+        # Ensure target_shape is a tuple to handle dynamic shapes
+        self.target_shape = tuple(target_shape)
+
+    def build(self, input_shape):
+        # The build method is used to create the weights of the layer
+        super(BroadcastToLayer, self).build(input_shape)
+
+    def call(self, inputs):
         # Generate the broadcasted shape dynamically
+        input_shape = tf.shape(inputs)
         broadcast_shape = tf.concat(([input_shape[0]], self.target_shape[1:]), axis=0)
-        return tf.broadcast_to(squeezed_inputs, broadcast_shape)
+        return tf.broadcast_to(inputs, broadcast_shape)
 
     def compute_output_shape(self, input_shape):
         # The output shape will have the same batch size as the input
         # and the remaining dimensions will match the target shape
-        # The target shape is stored as an attribute when the layer is called
         return (input_shape[0],) + self.target_shape[1:]
 
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
@@ -72,8 +72,8 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         leaky_relu = tf.keras.layers.LeakyReLU()(logits)
 
         # Use BroadcastToLayer to broadcast bias_mat to the shape of leaky_relu
-        broadcast_to_layer = BroadcastToLayer()
-        coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + broadcast_to_layer(bias_mat, leaky_relu))
+        broadcast_to_layer = BroadcastToLayer(target_shape=tf.shape(leaky_relu))
+        coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + broadcast_to_layer(bias_mat))
 
         if coef_drop != 0.0:
             coefs = tf.keras.layers.Dropout(1.0 - coef_drop)(coefs, training=True)
