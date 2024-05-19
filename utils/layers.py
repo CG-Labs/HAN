@@ -16,7 +16,7 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
     """
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
-            seq = tf.nn.dropout(seq, 1.0 - in_drop)
+            seq = tf.keras.layers.Dropout(1.0 - in_drop)(seq, training=True)
         seq_fts = conv1d(filters=out_sz, kernel_size=1, use_bias=False)(seq)
 
 
@@ -27,9 +27,9 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         coefs = tf.nn.softmax(tf.nn.leaky_relu(logits) + bias_mat)
 
         if coef_drop != 0.0:
-            coefs = tf.nn.dropout(coefs, 1.0 - coef_drop)
+            coefs = tf.keras.layers.Dropout(1.0 - coef_drop)(coefs, training=True)
         if in_drop != 0.0:
-            seq_fts = tf.nn.dropout(seq_fts, 1.0 - in_drop)
+            seq_fts = tf.keras.layers.Dropout(1.0 - in_drop)(seq_fts, training=True)
 
         vals = tf.matmul(coefs, seq_fts)
         ret = tf.keras.backend.bias_add(vals)
@@ -56,7 +56,7 @@ def attn_head_const_1(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=
     adj_mat = 1.0 - bias_mat / -1e9
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
-            seq = tf.nn.dropout(seq, 1.0 - in_drop)
+            seq = tf.keras.layers.Dropout(1.0 - in_drop)(seq, training=True)
         seq_fts = conv1d(filters=out_sz, kernel_size=1, use_bias=False)(seq)
 
 
@@ -64,9 +64,9 @@ def attn_head_const_1(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=
         coefs = tf.nn.softmax(tf.nn.leaky_relu(logits) + bias_mat)
 
         if coef_drop != 0.0:
-            coefs = tf.nn.dropout(coefs, 1.0 - coef_drop)
+            coefs = tf.keras.layers.Dropout(1.0 - coef_drop)(coefs, training=True)
         if in_drop != 0.0:
-            seq_fts = tf.nn.dropout(seq_fts, 1.0 - in_drop)
+            seq_fts = tf.keras.layers.Dropout(1.0 - in_drop)(seq_fts, training=True)
 
         vals = tf.matmul(coefs, seq_fts)
         ret = tf.keras.backend.bias_add(vals)
@@ -85,7 +85,7 @@ def attn_head_const_1(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=
 def sp_attn_head(seq, out_sz, adj_mat, activation, nb_nodes, in_drop=0.0, coef_drop=0.0, residual=False):
     with tf.name_scope('sp_attn'):
         if in_drop != 0.0:
-            seq = tf.nn.dropout(seq, 1.0 - in_drop)
+            seq = tf.keras.layers.Dropout(1.0 - in_drop)(seq, training=True)
 
         seq_fts = conv1d(filters=out_sz, kernel_size=1, use_bias=False)(seq)
 
@@ -101,11 +101,10 @@ def sp_attn_head(seq, out_sz, adj_mat, activation, nb_nodes, in_drop=0.0, coef_d
 
         if coef_drop != 0.0:
             coefs = tf.SparseTensor(indices=coefs.indices,
-                                    values=tf.nn.dropout(
-                                        coefs.values, 1.0 - coef_drop),
+                                    values=tf.keras.layers.Dropout(1.0 - coef_drop)(coefs.values, training=True),
                                     dense_shape=coefs.dense_shape)
         if in_drop != 0.0:
-            seq_fts = tf.nn.dropout(seq_fts, 1.0 - in_drop)
+            seq_fts = tf.keras.layers.Dropout(1.0 - in_drop)(seq_fts, training=True)
 
         # As tf.sparse_tensor_dense_matmul expects its arguments to have rank-2,
         # here we make an assumption that our input is of batch size 1, and reshape appropriately.
