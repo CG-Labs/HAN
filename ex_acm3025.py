@@ -81,12 +81,13 @@ features = 1    # The number of features used for prediction, here it's just the
 
 ftr_in = tf.keras.Input(shape=(timesteps, features), name='ftr_in')
 
-# Create a simple chain-like adjacency matrix for the Bitcoin data
-adjacency_matrix = np.eye(timesteps, k=1) + np.eye(timesteps, k=-1)
+# Correct the number of nodes to match the actual graph size for the bias matrix
+nb_nodes = 496  # This should be set to the actual number of nodes in the graph
+adjacency_matrix = np.eye(nb_nodes, k=1) + np.eye(nb_nodes, k=-1)
 adjacency_matrix = np.array([adjacency_matrix])  # Add batch dimension
 
-# Compute the bias matrix using the adjacency matrix
-bias_mat = process.adj_to_bias(adjacency_matrix, [adjacency_matrix.shape[1]], nhood=1)
+# Compute the bias matrix using the adjacency matrix with the correct shape
+bias_mat = process.adj_to_bias(adjacency_matrix, [nb_nodes], nhood=1)
 
 logits = GAT.inference(ftr_in, nb_classes=1, nb_nodes=preprocessed_data.shape[1], training=False,
                        attn_drop=0.6, ffd_drop=0.6, bias_mat=bias_mat, hid_units=hid_units,
@@ -124,6 +125,7 @@ train_mask = train_mask[np.newaxis]
 val_mask = val_mask[np.newaxis]
 test_mask = test_mask[np.newaxis]
 
+# Adjust the bias matrix to have the correct shape [1, nb_nodes, nb_nodes]
 biases_list = [process.adj_to_bias(adj, [nb_nodes], nhood=1) for adj in adj_list]
 
 print('build graph...')
