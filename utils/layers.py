@@ -29,6 +29,10 @@ class SqueezeLayer(tf.keras.layers.Layer):
         # Remove all singleton dimensions from the input shape, skip None dimensions
         return tuple(dim for dim in input_shape if dim is not None and dim != 1)
 
+class BroadcastToLayer(tf.keras.layers.Layer):
+    def call(self, inputs, shape):
+        return tf.broadcast_to(inputs, shape)
+
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
                return_coef=False):
     """[summary]
@@ -55,7 +59,10 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
 
         logits = f_1 + tf.keras.layers.Permute((2, 1))(f_2)
         leaky_relu = tf.keras.layers.LeakyReLU()(logits)
-        coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + tf.broadcast_to(bias_mat, tf.shape(leaky_relu)))
+
+        # Replace the direct call to tf.broadcast_to with an instance of BroadcastToLayer
+        broadcast_to_layer = BroadcastToLayer()
+        coefs = tf.keras.layers.Softmax(axis=-1)(leaky_relu + broadcast_to_layer(bias_mat, tf.shape(leaky_relu)))
 
         if coef_drop != 0.0:
             coefs = tf.keras.layers.Dropout(1.0 - coef_drop)(coefs, training=True)
