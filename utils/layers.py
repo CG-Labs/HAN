@@ -42,13 +42,14 @@ class BroadcastToLayer(tf.keras.layers.Layer):
         return self.target_shape
 
 class ReshapeBiasMatLayer(tf.keras.layers.Layer):
-    def call(self, inputs):
-        seq_fts, bias_mat = inputs
-        # Use tf.keras.backend.shape to obtain the dynamic shape of bias_mat
-        nb_nodes = tf.keras.backend.shape(bias_mat)[1]
-        # Perform the reshape operation on bias_mat using the obtained shape
-        bias_mat_reshaped = tf.reshape(bias_mat, (1, nb_nodes, nb_nodes))
-        return bias_mat_reshaped
+    class ReshapeBiasMatLayer(tf.keras.layers.Layer):
+        def call(self, inputs):
+            seq_fts, bias_mat = inputs
+            # Use tf.keras.backend.shape to obtain the dynamic shape of seq_fts
+            nb_nodes = tf.keras.backend.shape(seq_fts)[1]
+            # Perform the reshape operation on bias_mat using the obtained shape
+            bias_mat_reshaped = tf.reshape(bias_mat, (1, nb_nodes, nb_nodes))
+            return bias_mat_reshaped
 
     def compute_output_shape(self, input_shape):
         seq_fts_shape, bias_mat_shape = input_shape
