@@ -58,37 +58,45 @@ class HeteGAT_multi(BaseGAttN):
                   bias_mat_list, hid_units, n_heads, activation=tf.nn.elu, residual=False,
                   mp_att_size=128):
         embed_list = []
+        print('Debug: Starting HeteGAT_multi.inference method...')
         print('Debug: Starting attention head computations for first layer...')
         for inputs, bias_mat in zip(inputs_list, bias_mat_list):
             attns = []
             jhy_embeds = []
-            for _ in range(n_heads[0]):
+            for i in range(n_heads[0]):
+                print(f'Debug: Computing attention head {i+1} of {n_heads[0]} for first layer...')
                 attns.append(layers.attn_head(inputs, bias_mat=bias_mat,
                                               out_sz=hid_units[0], activation=activation,
                                               in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
+                print(f'Debug: Attention head {i+1} of {n_heads[0]} for first layer computed.')
             h_1 = ConcatLayer(axis=-1)(attns)
             print('Debug: Attention head computations for first layer completed.')
+            embed_list.append(h_1)
 
         print('Debug: Starting attention head computations for subsequent layers...')
         for i in range(1, len(hid_units)):
             h_old = h_1
             attns = []
-            for _ in range(n_heads[i]):
-                attns.append(layers.attn_head(h_1, bias_mat=bias_mat,
+            for j in range(n_heads[i]):
+                print(f'Debug: Computing attention head {j+1} of {n_heads[i]} for layer {i}...')
+                attns.append(layers.attn_head(h_old, bias_mat=bias_mat_list[0],  # Assuming all inputs share the same bias matrix
                                               out_sz=hid_units[i],
                                               activation=activation,
                                               in_drop=ffd_drop,
                                               coef_drop=attn_drop, residual=residual))
+                print(f'Debug: Attention head {j+1} of {n_heads[i]} for layer {i} computed.')
             h_1 = ConcatLayer(axis=-1)(attns)
-        print('Debug: Attention head computations for subsequent layers completed.')
+            print('Debug: Attention head computations for subsequent layers completed.')
 
         print('Debug: Concatenating embeddings from different types...')
         multi_embed = ConcatLayer(axis=1)(embed_list)
         print('Debug: Concatenation completed.')
 
+        print('Debug: Computing final embeddings and attention values...')
         final_embed, att_val = layers.SimpleAttLayer(multi_embed, mp_att_size,
                                                      time_major=False,
                                                      return_alphas=True)
+        print('Debug: Final embeddings and attention values computed.')
 
         print('Debug: Computing final logits...')
         out = []
@@ -98,6 +106,7 @@ class HeteGAT_multi(BaseGAttN):
         print('Debug: Final logits computation completed.')
 
         logits = tf.expand_dims(logits, axis=0)
+        print('Debug: HeteGAT_multi.inference method completed.')
         return logits, final_embed, att_val
 
 class HeteGAT_no_coef(BaseGAttN):
