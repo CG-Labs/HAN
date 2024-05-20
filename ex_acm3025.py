@@ -71,7 +71,7 @@ def preprocess_data(data):
 
 # Fetch and preprocess Bitcoin data
 start_date = '2020-01-01'  # Start date for fetching historical data
-end_date = '2024-12-31'    # End date for fetching historical data
+end_date = '2023-05-11'    # End date for fetching historical data, set to the current date
 bitcoin_data = fetch_bitcoin_data(start_date, end_date)
 preprocessed_data = preprocess_data(bitcoin_data)
 

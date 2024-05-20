@@ -51,17 +51,17 @@ class ReshapeBiasMatLayer(tf.keras.layers.Layer):
 
     def call(self, inputs):
         seq_fts, bias_mat = inputs
-        # Get the shape of seq_fts and bias_mat
+        # Get the shape of seq_fts
         seq_fts_shape = tf.shape(seq_fts)
-        bias_mat_shape = tf.shape(bias_mat)
-        # Calculate the number of elements in the bias_mat tensor
-        bias_mat_num_elements = tf.size(bias_mat)
-        # Calculate the product of the second and third dimensions of seq_fts
-        target_num_elements = seq_fts_shape[1] * seq_fts_shape[2]
-        # Determine the first dimension of the reshaped bias_mat based on the number of elements
-        new_first_dim = bias_mat_num_elements // target_num_elements
-        # Reshape bias_mat to have the new first dimension and the second and third dimensions of seq_fts
-        bias_mat_reshaped = tf.reshape(bias_mat, [new_first_dim, seq_fts_shape[1], seq_fts_shape[2]])
+        # Calculate the batch size for reshaping by using the total number of elements in bias_mat
+        # divided by the product of the second and third dimensions of seq_fts
+        total_elements_bias_mat = tf.size(bias_mat)
+        product_dimensions_seq_fts = seq_fts_shape[1] * seq_fts_shape[2]
+        batch_size_for_reshape = total_elements_bias_mat // product_dimensions_seq_fts
+        # Ensure the calculated batch size matches the first dimension of seq_fts
+        batch_size_for_reshape = tf.minimum(batch_size_for_reshape, seq_fts_shape[0])
+        # Reshape bias_mat to have the calculated batch size and the second and third dimensions of seq_fts
+        bias_mat_reshaped = tf.reshape(bias_mat, [batch_size_for_reshape, seq_fts_shape[1], seq_fts_shape[2]])
         return bias_mat_reshaped
 
     def compute_output_shape(self, input_shape):
