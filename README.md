@@ -33,6 +33,22 @@ The script will download the necessary data, preprocess it, and run the model to
 
 The project includes a visualization component that allows you to visualize the graph neural network and attention mechanisms. To view the visualization, open the `visualization.html` file in a web browser.
 
+## Workflow Diagram
+
+Below is a mermaid diagram illustrating the workflow of the project:
+
+```mermaid
+graph TD
+    A[Fetch Data] --> B[Preprocess Data]
+    B --> C[Train Model]
+    C --> D[Save Model]
+    D --> E[Load Model]
+    E --> F[Make Prediction]
+    F --> G[Output Prediction]
+```
+
+This diagram represents the sequence of operations from data acquisition to the final prediction output.
+
 ## Requirements
 
 The `requirements.txt` file lists all the necessary Python packages. Ensure you have installed all the dependencies listed in this file before running the project.
