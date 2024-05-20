@@ -35,60 +35,38 @@ class BroadcastToLayer(tf.keras.layers.Layer):
         super(BroadcastToLayer, self).build(input_shape)
 
     def call(self, inputs):
-        # Unpack the inputs
         seq_fts, bias_mat_reshaped = inputs
-        # Compute the target shape based on the shape of seq_fts
-        target_shape = tf.shape(seq_fts)
-        # Broadcast bias_mat_reshaped to match the shape of seq_fts
-        return tf.broadcast_to(bias_mat_reshaped, target_shape)
+        # Ensure bias_mat_reshaped is broadcasted to match the shape of seq_fts
+        seq_fts_shape = tf.shape(seq_fts)
+        bias_mat_broadcasted = tf.broadcast_to(bias_mat_reshaped, [seq_fts_shape[0], seq_fts_shape[1], seq_fts_shape[2]])
+        return bias_mat_broadcasted
 
     def compute_output_shape(self, input_shape):
-        # Return the input shape as the output shape
-        return input_shape
+        # The output shape should match the shape of seq_fts
+        return input_shape[0]
 
 class ReshapeBiasMatLayer(tf.keras.layers.Layer):
-    def __init__(self, out_sz, **kwargs):
+    def __init__(self, **kwargs):
         super(ReshapeBiasMatLayer, self).__init__(**kwargs)
-        self.out_sz = out_sz
 
     def call(self, inputs):
-        # Debug print statements to confirm the types and values before any operations
-        tf.print("seq_fts shape at start:", tf.shape(inputs[0]))
-        tf.print("bias_mat shape at start:", tf.shape(inputs[1]))
-        # Extract the dynamic shape of seq_fts
-        seq_fts_shape = tf.shape(inputs[0])
-        # Conditional squeeze of bias_mat based on its first dimension
-        bias_mat = tf.cond(tf.equal(tf.shape(inputs[1])[0], 1),
-                           lambda: tf.squeeze(inputs[1], axis=0),
-                           lambda: inputs[1])
-        tf.print("bias_mat shape after squeeze (if applied):", tf.shape(bias_mat))
-        try:
-            # Extract the batch size and sequence length from seq_fts_shape using indexing
-            batch_size = seq_fts_shape[0]
-            seq_length = seq_fts_shape[1]
-            # Calculate the number of elements in bias_mat
-            bias_mat_size = tf.size(bias_mat)
-            # Calculate the expected number of elements after reshaping
-            expected_num_elements = batch_size * seq_length * self.out_sz
-            # Assert that the number of elements in bias_mat matches the expected number
-            assertion = tf.Assert(tf.equal(bias_mat_size, expected_num_elements), [bias_mat_size, expected_num_elements])
-            # Execute the assertion in the TensorFlow graph
-            with tf.control_dependencies([assertion]):
-                # Since the number of elements matches, proceed with reshaping
-                new_shape = (batch_size, seq_length, self.out_sz)
-                bias_mat_reshaped = tf.reshape(bias_mat, new_shape)
-        except Exception as e:
-            tf.print("Exception in ReshapeBiasMatLayer during reshape operation:", e)
-            tf.print("seq_fts shape:", tf.shape(inputs[0]))
-            tf.print("bias_mat shape:", tf.shape(bias_mat))
-            tf.print("seq_fts_shape:", seq_fts_shape)
-            raise e
+        seq_fts, bias_mat = inputs
+        # Get the shape of seq_fts and bias_mat
+        seq_fts_shape = tf.shape(seq_fts)
+        bias_mat_shape = tf.shape(bias_mat)
+        # Calculate the number of elements in the bias_mat tensor
+        bias_mat_num_elements = tf.size(bias_mat)
+        # Calculate the product of the second and third dimensions of seq_fts
+        target_num_elements = seq_fts_shape[1] * seq_fts_shape[2]
+        # Determine the first dimension of the reshaped bias_mat based on the number of elements
+        new_first_dim = bias_mat_num_elements // target_num_elements
+        # Reshape bias_mat to have the new first dimension and the second and third dimensions of seq_fts
+        bias_mat_reshaped = tf.reshape(bias_mat, [new_first_dim, seq_fts_shape[1], seq_fts_shape[2]])
         return bias_mat_reshaped
 
     def compute_output_shape(self, input_shape):
-        seq_fts_shape, _ = input_shape
-        # Return the shape with the dynamic batch size and the static last two dimensions
-        return (seq_fts_shape[0], seq_fts_shape[1], seq_fts_shape[1])
+        # The output shape should match the shape of seq_fts
+        return input_shape[0]
 
 class PrintShapeLayer(tf.keras.layers.Layer):
     def call(self, inputs):
@@ -110,7 +88,12 @@ class ExtractShapesLayer(tf.keras.layers.Layer):
 # Custom layer to perform addition of two tensors
 class AddLayer(tf.keras.layers.Layer):
     def call(self, inputs):
-        return inputs[0] + inputs[1]
+        # Perform element-wise addition of two tensors with compatible shapes
+        return tf.add(inputs[0], inputs[1])
+
+    def compute_output_shape(self, input_shape):
+        # Output shape is the same as the shape of either input tensor since they are compatible
+        return input_shape[0]
 
 def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, residual=False,
               return_coef=False, return_shapes=False):
@@ -130,7 +113,7 @@ def attn_head(seq, out_sz, bias_mat, activation, in_drop=0.0, coef_drop=0.0, res
         leaky_relu = tf.keras.layers.LeakyReLU()(logits)
 
         # Reshape bias_mat to match the shape required for broadcasting with seq_fts
-        reshape_bias_mat_layer = ReshapeBiasMatLayer(out_sz=out_sz)
+        reshape_bias_mat_layer = ReshapeBiasMatLayer()
         bias_mat_reshaped = reshape_bias_mat_layer([seq_fts, bias_mat])
 
         # Use PrintShapeLayer to print the shapes

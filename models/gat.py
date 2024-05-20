@@ -25,10 +25,9 @@ class GAT(BaseGAttN):
             attn, shapes = layers.attn_head(inputs, bias_mat=bias_mat,
                                             out_sz=hid_units[0], activation=activation,
                                             in_drop=ffd_drop, coef_drop=attn_drop, residual=False,
-                                            return_shapes=return_shapes)
+                                            return_shapes=True)  # Set return_shapes to True to get shapes for debugging
             attns.append(attn)
-            if return_shapes:
-                shapes_list.append(shapes)
+            shapes_list.append(shapes)
         h_1 = ConcatLayer(axis=-1)(attns)
         for i in range(1, len(hid_units)):
             h_old = h_1
@@ -37,17 +36,16 @@ class GAT(BaseGAttN):
                 attn, shapes = layers.attn_head(h_1, bias_mat=bias_mat,
                                                 out_sz=hid_units[i], activation=activation,
                                                 in_drop=ffd_drop, coef_drop=attn_drop, residual=residual,
-                                                return_shapes=return_shapes)
+                                                return_shapes=True)  # Set return_shapes to True to get shapes for debugging
                 attns.append(attn)
-                if return_shapes:
-                    shapes_list.append(shapes)
+                shapes_list.append(shapes)
             h_1 = ConcatLayer(axis=-1)(attns)
         out = []
         for i in range(n_heads[-1]):
             out.append(layers.attn_head(h_1, bias_mat=bias_mat,
                                         out_sz=nb_classes, activation=lambda x: x,
                                         in_drop=ffd_drop, coef_drop=attn_drop, residual=False,
-                                        return_shapes=return_shapes)[0])
+                                        return_shapes=True)[0])  # Set return_shapes to True to get shapes for debugging
         logits = AddLayer()([out]) / n_heads[-1]
 
         if return_shapes:
