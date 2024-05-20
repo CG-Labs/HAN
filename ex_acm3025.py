@@ -47,6 +47,7 @@ def fetch_bitcoin_data(start_date, end_date):
     print(f"Fetching Bitcoin data from {start_date} to {end_date}...")
     bitcoin_data = yf.download('BTC-USD', start=start_date, end=end_date)
     print("Data fetching complete.")
+    print("Bitcoin data shape:", bitcoin_data.shape)
     return bitcoin_data
 
 def preprocess_data(data):
@@ -70,7 +71,7 @@ def preprocess_data(data):
     for i in range(samples):
         X[i] = normalized_prices[i:i+timesteps].reshape(timesteps, features)
 
-    print("Data preprocessing complete.")
+    print("Data preprocessing complete. Shape of preprocessed data:", X.shape)
     return X
 
 # Fetch and preprocess Bitcoin data
@@ -177,7 +178,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         # Generate data
         X, y, mask = self.__data_generation(feature_list_temp, bias_list_temp, indexes)
 
-        print(f"Generated batch {index + 1} with {len(indexes)} samples.")
+        print(f"Generated batch {index + 1} with {len(indexes)} samples. Batch indexes: {indexes}")
         return X, y, mask
 
     def on_epoch_end(self):
@@ -197,7 +198,7 @@ class DataGenerator(tf.keras.utils.Sequence):
 # Instantiate the model and call the inference method
 print("Instantiating the model...")
 logits, final_embed, att_val = HeteGAT_multi.inference(inputs_list=fea_list, nb_classes=nb_classes, nb_nodes=nb_nodes, training=False, attn_drop=0.6, ffd_drop=0.6, bias_mat_list=biases_list, hid_units=hid_units, n_heads=n_heads, activation=tf.nn.elu, residual=residual, mp_att_size=128)
-print("Model instantiated.")
+print("Model instantiated with logits shape:", logits.shape, "and final_embed shape:", final_embed.shape)
 
 # Create a Keras model using the logits returned by the inference method
 model = tf.keras.Model(inputs=fea_list, outputs=logits)
@@ -224,15 +225,17 @@ print("Model training completed at", time.strftime("%Y-%m-%d %H:%M:%S"))
 # Save the trained model
 print("Saving the trained model...")
 model.save('trained_model.h5')
-print("Trained model saved.")
+print("Trained model saved at 'trained_model.h5'. Model summary:")
+model.summary()
 
 # Load the model for evaluation
 print("Loading the model for evaluation...")
 model = tf.keras.models.load_model('trained_model.h5')
-print("Model loaded.")
+print("Model loaded for evaluation. Model summary:")
+model.summary()
 
 # Evaluate the model on the test set
 print("Evaluating the model on the test set...")
 test_data = DataGenerator(fea_list, biases_list, y_test, test_mask, batch_size)
 test_loss, test_accuracy = model.evaluate(test_data)
-print(f'Test loss: {test_loss}; Test accuracy: {test_accuracy}')
+print(f"Test evaluation complete. Loss: {test_loss}; Accuracy: {test_accuracy}")
