@@ -18,29 +18,42 @@ class AddLayer(tf.keras.layers.Layer):
 
 class GAT(BaseGAttN):
     def inference(inputs, nb_classes, nb_nodes, training, attn_drop, ffd_drop,
-                  bias_mat, hid_units, n_heads, activation=tf.nn.elu, residual=False):
+                  bias_mat, hid_units, n_heads, activation=tf.nn.elu, residual=False, return_shapes=False):
         attns = []
+        shapes_list = []
         for _ in range(n_heads[0]):
-            attns.append(layers.attn_head(inputs, bias_mat=bias_mat,
-                                          out_sz=hid_units[0], activation=activation,
-                                          in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
+            attn, shapes = layers.attn_head(inputs, bias_mat=bias_mat,
+                                            out_sz=hid_units[0], activation=activation,
+                                            in_drop=ffd_drop, coef_drop=attn_drop, residual=False,
+                                            return_shapes=return_shapes)
+            attns.append(attn)
+            if return_shapes:
+                shapes_list.append(shapes)
         h_1 = ConcatLayer(axis=-1)(attns)
         for i in range(1, len(hid_units)):
             h_old = h_1
             attns = []
             for _ in range(n_heads[i]):
-                attns.append(layers.attn_head(h_1, bias_mat=bias_mat,
-                                              out_sz=hid_units[i], activation=activation,
-                                              in_drop=ffd_drop, coef_drop=attn_drop, residual=residual))
+                attn, shapes = layers.attn_head(h_1, bias_mat=bias_mat,
+                                                out_sz=hid_units[i], activation=activation,
+                                                in_drop=ffd_drop, coef_drop=attn_drop, residual=residual,
+                                                return_shapes=return_shapes)
+                attns.append(attn)
+                if return_shapes:
+                    shapes_list.append(shapes)
             h_1 = ConcatLayer(axis=-1)(attns)
         out = []
         for i in range(n_heads[-1]):
             out.append(layers.attn_head(h_1, bias_mat=bias_mat,
                                         out_sz=nb_classes, activation=lambda x: x,
-                                        in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
+                                        in_drop=ffd_drop, coef_drop=attn_drop, residual=False,
+                                        return_shapes=return_shapes)[0])
         logits = AddLayer()([out]) / n_heads[-1]
 
-        return logits
+        if return_shapes:
+            return logits, shapes_list
+        else:
+            return logits
 
 class HeteGAT_multi(BaseGAttN):
     def inference(inputs_list, nb_classes, nb_nodes, training, attn_drop, ffd_drop,

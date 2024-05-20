@@ -70,7 +70,7 @@ def preprocess_data(data):
     return X
 
 # Fetch and preprocess Bitcoin data
-start_date = '2023-01-01'  # Start date for fetching historical data
+start_date = '2020-01-01'  # Start date for fetching historical data
 end_date = '2024-12-31'    # End date for fetching historical data
 bitcoin_data = fetch_bitcoin_data(start_date, end_date)
 preprocessed_data = preprocess_data(bitcoin_data)
@@ -89,15 +89,22 @@ adjacency_matrix = np.array([adjacency_matrix])  # Add batch dimension
 # Compute the bias matrix using the adjacency matrix with the correct shape
 bias_mat = process.adj_to_bias(adjacency_matrix, [nb_nodes], nhood=1)
 
-logits = GAT.inference(ftr_in, nb_classes=1, nb_nodes=preprocessed_data.shape[1], training=False,
-                       attn_drop=0.6, ffd_drop=0.6, bias_mat=bias_mat, hid_units=hid_units,
-                       n_heads=n_heads, activation=tf.nn.elu, residual=False)
+# Apply the attention mechanism and capture the tensor shapes using PrintShapeLayer
+logits, shapes = GAT.inference(ftr_in, nb_classes=1, nb_nodes=preprocessed_data.shape[1], training=False,
+                               attn_drop=0.6, ffd_drop=0.6, bias_mat=bias_mat, hid_units=hid_units,
+                               n_heads=n_heads, activation=tf.nn.elu, residual=False, return_shapes=True)
+
+# Print the captured tensor shapes
+print("Tensor shapes:", shapes)
 
 # Create a Keras model
 model = tf.keras.Model(inputs=ftr_in, outputs=logits)
 
 # Run the model to get the predictions
 predictions = model.predict(preprocessed_data)
+
+# Print the actual shapes of the tensors
+print("Actual tensor shapes:", predictions.shape)
 
 import scipy.sparse as sp
 # Define the feature list and other related variables before their usage
