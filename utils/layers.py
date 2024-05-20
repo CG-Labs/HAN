@@ -53,14 +53,18 @@ class ReshapeBiasMatLayer(tf.keras.layers.Layer):
         seq_fts, bias_mat = inputs
         # Get the dynamic shape of seq_fts
         seq_fts_shape = tf.shape(seq_fts)
-        # Calculate the batch size for reshaping using the first dimension of seq_fts
-        batch_size_for_reshape = seq_fts_shape[0]
+        # Calculate the total number of elements in bias_mat
+        total_elements_bias_mat = tf.size(bias_mat)
         # Calculate the side length of the square matrix after reshaping
-        # The side length should be the second dimension of seq_fts
-        side_length = seq_fts_shape[1]
-        # Reshape bias_mat to have the same batch size as seq_fts and the side length for the other two dimensions
-        # The last dimension is set to 1 since we are dealing with a feature size of 1
-        bias_mat_reshaped = tf.reshape(bias_mat, [batch_size_for_reshape, side_length, side_length])
+        # The side length should be the square root of the total number of elements in bias_mat
+        # divided by the batch size of seq_fts, ensuring the total number of elements remains the same
+        side_length = tf.cast(tf.sqrt(tf.cast(total_elements_bias_mat / seq_fts_shape[0], tf.float32)), tf.int32)
+        # Use tf.cond to perform the conditional check and assignment
+        side_length_corrected = tf.cond(tf.math.equal(side_length * side_length * seq_fts_shape[0], total_elements_bias_mat),
+                                        lambda: side_length,
+                                        lambda: side_length + 1)
+        # Reshape bias_mat to have the shape [batch_size, side_length_corrected, side_length_corrected]
+        bias_mat_reshaped = tf.reshape(bias_mat, [seq_fts_shape[0], side_length_corrected, side_length_corrected])
         return bias_mat_reshaped
 
     def compute_output_shape(self, input_shape):
@@ -88,7 +92,11 @@ class ExtractShapesLayer(tf.keras.layers.Layer):
 class AddLayer(tf.keras.layers.Layer):
     def call(self, inputs):
         # Perform element-wise addition of two tensors with compatible shapes
-        return tf.add(inputs[0], inputs[1])
+        # Ensure that bias_mat_reshaped is broadcasted to match the shape of seq_fts
+        seq_fts, bias_mat_reshaped = inputs
+        seq_fts_shape = tf.shape(seq_fts)
+        bias_mat_broadcasted = tf.broadcast_to(bias_mat_reshaped, seq_fts_shape)
+        return tf.add(seq_fts, bias_mat_broadcasted)
 
     def compute_output_shape(self, input_shape):
         # Output shape is the same as the shape of either input tensor since they are compatible
