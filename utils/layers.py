@@ -56,20 +56,36 @@ class ReshapeBiasMatLayer(tf.keras.layers.Layer):
         # Calculate the total number of elements in bias_mat
         total_elements_bias_mat = tf.size(bias_mat)
         # Calculate the side length of the square matrix after reshaping
-        side_length = tf.cast(tf.sqrt(tf.cast(total_elements_bias_mat / seq_fts_shape[0], tf.float32)), tf.int32)
+        batch_size = seq_fts_shape[0]
+        side_length = tf.cast(tf.sqrt(tf.cast(total_elements_bias_mat / batch_size, tf.float32)), tf.int32)
         # Calculate the corrected side length to ensure the reshaped tensor has the correct number of elements
-        expected_elements = side_length * side_length * seq_fts_shape[0]
+        expected_elements = side_length * side_length * batch_size
 
         # Define the function to adjust side_length_corrected if the expected elements do not match
-        def adjust_side_length():
+        def adjust_side_length(side_length, expected_elements, total_elements_bias_mat):
+            # Calculate the difference in the number of elements
             element_diff = total_elements_bias_mat - expected_elements
+            # Determine the number of rows to add based on the element difference
             rows_to_add = tf.cast(tf.math.ceil(tf.sqrt(tf.cast(element_diff, tf.float32))), tf.int32)
+            # Adjust side_length to account for the additional rows
             return side_length + rows_to_add
 
-        # Use tf.cond to conditionally adjust side_length_corrected
-        side_length_corrected = tf.cond(tf.math.not_equal(expected_elements, total_elements_bias_mat),
-                                        adjust_side_length,
-                                        lambda: side_length)
+        # Define the loop condition
+        def loop_condition(side_length_corrected, expected_elements, total_elements_bias_mat):
+            return tf.math.not_equal(expected_elements, total_elements_bias_mat)
+
+        # Define the loop body
+        def loop_body(side_length_corrected, expected_elements, total_elements_bias_mat):
+            side_length_corrected = adjust_side_length(side_length_corrected, expected_elements, total_elements_bias_mat)
+            expected_elements = side_length_corrected * side_length_corrected * batch_size
+            return [side_length_corrected, expected_elements, total_elements_bias_mat]
+
+        # Perform the while loop using TensorFlow's control flow operations
+        [side_length_corrected, expected_elements, _] = tf.while_loop(
+            loop_condition,
+            loop_body,
+            [side_length, expected_elements, total_elements_bias_mat]
+        )
 
         # Reshape bias_mat to have the shape [batch_size, side_length_corrected, side_length_corrected]
         bias_mat_reshaped = tf.reshape(bias_mat, [seq_fts_shape[0], side_length_corrected, side_length_corrected])
