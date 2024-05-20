@@ -58,6 +58,7 @@ class HeteGAT_multi(BaseGAttN):
                   bias_mat_list, hid_units, n_heads, activation=tf.nn.elu, residual=False,
                   mp_att_size=128):
         embed_list = []
+        print('Debug: Starting attention head computations for first layer...')
         for inputs, bias_mat in zip(inputs_list, bias_mat_list):
             attns = []
             jhy_embeds = []
@@ -66,29 +67,35 @@ class HeteGAT_multi(BaseGAttN):
                                               out_sz=hid_units[0], activation=activation,
                                               in_drop=ffd_drop, coef_drop=attn_drop, residual=False))
             h_1 = ConcatLayer(axis=-1)(attns)
+            print('Debug: Attention head computations for first layer completed.')
 
-            for i in range(1, len(hid_units)):
-                h_old = h_1
-                attns = []
-                for _ in range(n_heads[i]):
-                    attns.append(layers.attn_head(h_1, bias_mat=bias_mat,
-                                                  out_sz=hid_units[i],
-                                                  activation=activation,
-                                                  in_drop=ffd_drop,
-                                                  coef_drop=attn_drop, residual=residual))
-                h_1 = ConcatLayer(axis=-1)(attns)
-            embed_list.append(tf.expand_dims(tf.squeeze(h_1), axis=1))
+        print('Debug: Starting attention head computations for subsequent layers...')
+        for i in range(1, len(hid_units)):
+            h_old = h_1
+            attns = []
+            for _ in range(n_heads[i]):
+                attns.append(layers.attn_head(h_1, bias_mat=bias_mat,
+                                              out_sz=hid_units[i],
+                                              activation=activation,
+                                              in_drop=ffd_drop,
+                                              coef_drop=attn_drop, residual=residual))
+            h_1 = ConcatLayer(axis=-1)(attns)
+        print('Debug: Attention head computations for subsequent layers completed.')
 
+        print('Debug: Concatenating embeddings from different types...')
         multi_embed = ConcatLayer(axis=1)(embed_list)
+        print('Debug: Concatenation completed.')
+
         final_embed, att_val = layers.SimpleAttLayer(multi_embed, mp_att_size,
                                                      time_major=False,
                                                      return_alphas=True)
 
+        print('Debug: Computing final logits...')
         out = []
         for i in range(n_heads[-1]):
             out.append(tf.keras.layers.Dense(nb_classes, activation=None)(final_embed))
         logits = AddLayer()([out]) / n_heads[-1]
-        print('de')
+        print('Debug: Final logits computation completed.')
 
         logits = tf.expand_dims(logits, axis=0)
         return logits, final_embed, att_val
