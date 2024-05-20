@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import tensorflow as tf
+import yfinance as yf
 
 from models import GAT, HeteGAT, HeteGAT_multi
 from utils import process
@@ -9,9 +10,6 @@ from utils import process
 import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
-
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
 
 dataset = 'acm'
 featype = 'fea'
@@ -42,70 +40,89 @@ print('residual: ' + str(residual))
 print('nonlinearity: ' + str(nonlinearity))
 print('model: ' + str(model))
 
-# jhy data
-import scipy.io as sio
+def fetch_bitcoin_data(start_date, end_date):
+    """
+    Fetch historical Bitcoin data from Yahoo Finance.
+    """
+    bitcoin_data = yf.download('BTC-USD', start=start_date, end=end_date)
+    return bitcoin_data
+
+def preprocess_data(data):
+    """
+    Preprocess the Bitcoin data for the model.
+    Normalize the 'Close' prices and reshape the data for the model input.
+    """
+    # Normalize the 'Close' prices
+    close_prices = data['Close'].values
+    normalized_prices = (close_prices - np.mean(close_prices)) / np.std(close_prices)
+
+    # Reshape the data to match the model's input shape
+    # Assuming the model expects a 3D input shape (batch_size, timesteps, features)
+    # Here we use a sliding window approach to create a sequence of prices for each prediction
+    timesteps = 10  # The number of timesteps the model looks back for making a prediction
+    features = 1    # The number of features used for prediction, here it's just the normalized 'Close' price
+    samples = len(normalized_prices) - timesteps + 1
+
+    X = np.zeros((samples, timesteps, features))
+    for i in range(samples):
+        X[i] = normalized_prices[i:i+timesteps].reshape(timesteps, features)
+
+    return X
+
+# Fetch and preprocess Bitcoin data
+start_date = '2020-01-01'  # Start date for fetching historical data
+end_date = '2023-05-11'    # End date for fetching historical data, set to the current date
+bitcoin_data = fetch_bitcoin_data(start_date, end_date)
+preprocessed_data = preprocess_data(bitcoin_data)
+
+# Define the number of timesteps and features for the model input
+timesteps = 10  # The number of timesteps the model looks back for making a prediction
+features = 1    # The number of features used for prediction, here it's just the normalized 'Close' price
+
+ftr_in = tf.keras.Input(shape=(timesteps, features), name='ftr_in')
+
+# Correct the number of nodes to match the actual graph size for the bias matrix
+nb_nodes = 496  # This should be set to the actual number of nodes in the graph
+adjacency_matrix = np.eye(nb_nodes, k=1) + np.eye(nb_nodes, k=-1)
+adjacency_matrix = np.array([adjacency_matrix])  # Add batch dimension
+
+# Compute the bias matrix using the adjacency matrix with the correct shape
+bias_mat = process.adj_to_bias(adjacency_matrix, [nb_nodes], nhood=1)
+
+# Apply the attention mechanism and capture the tensor shapes using PrintShapeLayer
+logits, shapes = GAT.inference(ftr_in, nb_classes=1, nb_nodes=preprocessed_data.shape[1], training=False,
+                               attn_drop=0.6, ffd_drop=0.6, bias_mat=bias_mat, hid_units=hid_units,
+                               n_heads=n_heads, activation=tf.nn.elu, residual=False, return_shapes=True)
+
+# Print the captured tensor shapes
+print("Tensor shapes:", shapes)
+
+# Create a Keras model
+model = tf.keras.Model(inputs=ftr_in, outputs=logits)
+
+# Run the model to get the predictions
+predictions = model.predict(preprocessed_data)
+
+# Print the actual shapes of the tensors
+print("Actual tensor shapes:", predictions.shape)
+
 import scipy.sparse as sp
-
-
-def sample_mask(idx, l):
-    """Create mask."""
-    mask = np.zeros(l)
-    mask[idx] = 1
-    return np.array(mask, dtype=np.bool)
-
-
-def load_data_dblp(path='/home/jhy/allGAT/acm_hetesim/ACM3025.mat'):
-    data = sio.loadmat(path)
-    truelabels, truefeatures = data['label'], data['feature'].astype(float)
-    N = truefeatures.shape[0]
-    rownetworks = [data['PAP'] - np.eye(N), data['PLP'] - np.eye(N)]  # , data['PTP'] - np.eye(N)]
-
-    y = truelabels
-    train_idx = data['train_idx']
-    val_idx = data['val_idx']
-    test_idx = data['test_idx']
-
-    train_mask = sample_mask(train_idx, y.shape[0])
-    val_mask = sample_mask(val_idx, y.shape[0])
-    test_mask = sample_mask(test_idx, y.shape[0])
-
-    y_train = np.zeros(y.shape)
-    y_val = np.zeros(y.shape)
-    y_test = np.zeros(y.shape)
-    y_train[train_mask, :] = y[train_mask, :]
-    y_val[val_mask, :] = y[val_mask, :]
-    y_test[test_mask, :] = y[test_mask, :]
-
-    # return selected_idx, selected_idx_2
-    print('y_train:{}, y_val:{}, y_test:{}, train_idx:{}, val_idx:{}, test_idx:{}'.format(y_train.shape,
-                                                                                          y_val.shape,
-                                                                                          y_test.shape,
-                                                                                          train_idx.shape,
-                                                                                          val_idx.shape,
-                                                                                          test_idx.shape))
-    truefeatures_list = [truefeatures, truefeatures, truefeatures]
-    return rownetworks, truefeatures_list, y_train, y_val, y_test, train_mask, val_mask, test_mask
-
-
-# use adj_list as fea_list, have a try~
-adj_list, fea_list, y_train, y_val, y_test, train_mask, val_mask, test_mask = load_data_dblp()
-if featype == 'adj':
-    fea_list = adj_list
-
-
-
-import scipy.sparse as sp
-
-
+# Define the feature list and other related variables before their usage
+fea_list = [preprocessed_data]  # Assuming preprocessed_data is the feature list
+adj_list = [adjacency_matrix]  # Assuming adjacency_matrix is the adjacency list
+# Placeholder for labels and masks, need to be defined based on the actual data and requirements
+y_train = np.array([[0]])  # Placeholder
+y_val = np.array([[0]])    # Placeholder
+y_test = np.array([[0]])   # Placeholder
+train_mask = np.array([True])  # Placeholder
+val_mask = np.array([True])    # Placeholder
+test_mask = np.array([True])   # Placeholder
 
 
 nb_nodes = fea_list[0].shape[0]
 ft_size = fea_list[0].shape[1]
 nb_classes = y_train.shape[1]
 
-# adj = adj.todense()
-
-# features = features[np.newaxis]  # [1, nb_node, ft_size]
 fea_list = [fea[np.newaxis] for fea in fea_list]
 adj_list = [adj[np.newaxis] for adj in adj_list]
 y_train = y_train[np.newaxis]
@@ -115,179 +132,131 @@ train_mask = train_mask[np.newaxis]
 val_mask = val_mask[np.newaxis]
 test_mask = test_mask[np.newaxis]
 
+# Adjust the bias matrix to have the correct shape [1, nb_nodes, nb_nodes]
 biases_list = [process.adj_to_bias(adj, [nb_nodes], nhood=1) for adj in adj_list]
 
 print('build graph...')
-with tf.Graph().as_default():
-    with tf.name_scope('input'):
-        ftr_in_list = [tf.placeholder(dtype=tf.float32,
-                                      shape=(batch_size, nb_nodes, ft_size),
-                                      name='ftr_in_{}'.format(i))
-                       for i in range(len(fea_list))]
-        bias_in_list = [tf.placeholder(dtype=tf.float32,
-                                       shape=(batch_size, nb_nodes, nb_nodes),
-                                       name='bias_in_{}'.format(i))
-                        for i in range(len(biases_list))]
-        lbl_in = tf.placeholder(dtype=tf.int32, shape=(
-            batch_size, nb_nodes, nb_classes), name='lbl_in')
-        msk_in = tf.placeholder(dtype=tf.int32, shape=(batch_size, nb_nodes),
-                                name='msk_in')
-        attn_drop = tf.placeholder(dtype=tf.float32, shape=(), name='attn_drop')
-        ffd_drop = tf.placeholder(dtype=tf.float32, shape=(), name='ffd_drop')
-        is_train = tf.placeholder(dtype=tf.bool, shape=(), name='is_train')
-    # forward
-    logits, final_embedding, att_val = model.inference(ftr_in_list, nb_classes, nb_nodes, is_train,
-                                                       attn_drop, ffd_drop,
-                                                       bias_mat_list=bias_in_list,
-                                                       hid_units=hid_units, n_heads=n_heads,
-                                                       residual=residual, activation=nonlinearity)
 
-    # cal masked_loss
-    log_resh = tf.reshape(logits, [-1, nb_classes])
-    lab_resh = tf.reshape(lbl_in, [-1, nb_classes])
-    msk_resh = tf.reshape(msk_in, [-1])
-    loss = model.masked_softmax_cross_entropy(log_resh, lab_resh, msk_resh)
-    accuracy = model.masked_accuracy(log_resh, lab_resh, msk_resh)
-    # optimzie
-    train_op = model.training(loss, lr, l2_coef)
+class DataGenerator(tf.keras.utils.Sequence):
+    'Generates data for Keras'
+    def __init__(self, feature_list, bias_list, labels, mask, batch_size=1, shuffle=True):
+        'Initialization'
+        self.batch_size = batch_size
+        self.labels = labels
+        self.feature_list = feature_list
+        self.bias_list = bias_list
+        self.mask = mask
+        self.shuffle = shuffle
+        self.indexes = np.arange(len(self.feature_list[0]))
+        self.on_epoch_end()
 
-    saver = tf.train.Saver()
+    def __len__(self):
+        'Denotes the number of batches per epoch'
+        return int(np.floor(len(self.feature_list[0]) / self.batch_size))
 
-    init_op = tf.group(tf.global_variables_initializer(),
-                       tf.local_variables_initializer())
+    def __getitem__(self, index):
+        'Generate one batch of data'
+        # Generate indexes of the batch
+        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
 
-    vlss_mn = np.inf
-    vacc_mx = 0.0
-    curr_step = 0
+        # Find selected samples
+        feature_list_temp = [np.squeeze(self.feature_list[k][indexes], axis=0) for k in range(len(self.feature_list))]
+        bias_list_temp = [np.squeeze(self.bias_list[k][indexes], axis=0) for k in range(len(self.bias_list))]
 
-    with tf.Session(config=config) as sess:
-        sess.run(init_op)
+        # Generate data
+        X, y, mask = self.__data_generation(feature_list_temp, bias_list_temp, indexes)
 
-        train_loss_avg = 0
-        train_acc_avg = 0
-        val_loss_avg = 0
-        val_acc_avg = 0
+        return X, y, mask
 
-        for epoch in range(nb_epochs):
-            tr_step = 0
-           
-            tr_size = fea_list[0].shape[0]
-            # ================   training    ============
-            while tr_step * batch_size < tr_size:
+    def on_epoch_end(self):
+        'Updates indexes after each epoch'
+        if self.shuffle == True:
+            np.random.shuffle(self.indexes)
 
-                fd1 = {i: d[tr_step * batch_size:(tr_step + 1) * batch_size]
-                       for i, d in zip(ftr_in_list, fea_list)}
-                fd2 = {i: d[tr_step * batch_size:(tr_step + 1) * batch_size]
-                       for i, d in zip(bias_in_list, biases_list)}
-                fd3 = {lbl_in: y_train[tr_step * batch_size:(tr_step + 1) * batch_size],
-                       msk_in: train_mask[tr_step * batch_size:(tr_step + 1) * batch_size],
-                       is_train: True,
-                       attn_drop: 0.6,
-                       ffd_drop: 0.6}
-                fd = fd1
-                fd.update(fd2)
-                fd.update(fd3)
-                _, loss_value_tr, acc_tr, att_val_train = sess.run([train_op, loss, accuracy, att_val],
-                                                                   feed_dict=fd)
-                train_loss_avg += loss_value_tr
-                train_acc_avg += acc_tr
-                tr_step += 1
+    def __data_generation(self, feature_list_temp, bias_list_temp, indexes):
+        'Generates data containing batch_size samples'
+        # Initialization
+        X = [sp.hstack(feature_list_temp, format='csr')]
+        y = self.labels[indexes]
+        mask = self.mask[indexes]
 
-            vl_step = 0
-            vl_size = fea_list[0].shape[0]
-            # =============   val       =================
-            while vl_step * batch_size < vl_size:
-                # fd1 = {ftr_in: features[vl_step * batch_size:(vl_step + 1) * batch_size]}
-                fd1 = {i: d[vl_step * batch_size:(vl_step + 1) * batch_size]
-                       for i, d in zip(ftr_in_list, fea_list)}
-                fd2 = {i: d[vl_step * batch_size:(vl_step + 1) * batch_size]
-                       for i, d in zip(bias_in_list, biases_list)}
-                fd3 = {lbl_in: y_val[vl_step * batch_size:(vl_step + 1) * batch_size],
-                       msk_in: val_mask[vl_step * batch_size:(vl_step + 1) * batch_size],
-                       is_train: False,
-                       attn_drop: 0.0,
-                       ffd_drop: 0.0}
-          
-                fd = fd1
-                fd.update(fd2)
-                fd.update(fd3)
-                loss_value_vl, acc_vl = sess.run([loss, accuracy],
-                                                 feed_dict=fd)
-                val_loss_avg += loss_value_vl
-                val_acc_avg += acc_vl
-                vl_step += 1
-            # import pdb; pdb.set_trace()
-            print('Epoch: {}, att_val: {}'.format(epoch, np.mean(att_val_train, axis=0)))
-            print('Training: loss = %.5f, acc = %.5f | Val: loss = %.5f, acc = %.5f' %
-                  (train_loss_avg / tr_step, train_acc_avg / tr_step,
-                   val_loss_avg / vl_step, val_acc_avg / vl_step))
+        return X, y, mask
 
-            if val_acc_avg / vl_step >= vacc_mx or val_loss_avg / vl_step <= vlss_mn:
-                if val_acc_avg / vl_step >= vacc_mx and val_loss_avg / vl_step <= vlss_mn:
-                    vacc_early_model = val_acc_avg / vl_step
-                    vlss_early_model = val_loss_avg / vl_step
-                    saver.save(sess, checkpt_file)
-                vacc_mx = np.max((val_acc_avg / vl_step, vacc_mx))
-                vlss_mn = np.min((val_loss_avg / vl_step, vlss_mn))
-                curr_step = 0
-            else:
-                curr_step += 1
-                if curr_step == patience:
-                    print('Early stop! Min loss: ', vlss_mn,
-                          ', Max accuracy: ', vacc_mx)
-                    print('Early stop model validation loss: ',
-                          vlss_early_model, ', accuracy: ', vacc_early_model)
-                    break
+# Instantiate the model and call the inference method
+logits, final_embed, att_val = HeteGAT_multi.inference(inputs_list=fea_list, nb_classes=nb_classes, nb_nodes=nb_nodes, training=False, attn_drop=0.6, ffd_drop=0.6, bias_mat_list=biases_list, hid_units=hid_units, n_heads=n_heads, activation=tf.nn.elu, residual=residual, mp_att_size=128)
 
-            train_loss_avg = 0
-            train_acc_avg = 0
-            val_loss_avg = 0
-            val_acc_avg = 0
+# Create a Keras model using the logits returned by the inference method
+model = tf.keras.Model(inputs=fea_list, outputs=logits)
 
-        saver.restore(sess, checkpt_file)
-        print('load model from : {}'.format(checkpt_file))
-        ts_size = fea_list[0].shape[0]
-        ts_step = 0
-        ts_loss = 0.0
-        ts_acc = 0.0
+# Compile the Keras model with optimizer and loss function
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
+              loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'])
 
-        while ts_step * batch_size < ts_size:
-            # fd1 = {ftr_in: features[ts_step * batch_size:(ts_step + 1) * batch_size]}
-            fd1 = {i: d[ts_step * batch_size:(ts_step + 1) * batch_size]
-                   for i, d in zip(ftr_in_list, fea_list)}
-            fd2 = {i: d[ts_step * batch_size:(ts_step + 1) * batch_size]
-                   for i, d in zip(bias_in_list, biases_list)}
-            fd3 = {lbl_in: y_test[ts_step * batch_size:(ts_step + 1) * batch_size],
-                   msk_in: test_mask[ts_step * batch_size:(ts_step + 1) * batch_size],
-            
-                   is_train: False,
-                   attn_drop: 0.0,
-                   ffd_drop: 0.0}
-        
-            fd = fd1
-            fd.update(fd2)
-            fd.update(fd3)
-            loss_value_ts, acc_ts, jhy_final_embedding = sess.run([loss, accuracy, final_embedding],
-                                                                  feed_dict=fd)
-            ts_loss += loss_value_ts
-            ts_acc += acc_ts
-            ts_step += 1
+# Prepare the data generators for training and validation
+train_data = DataGenerator(fea_list, biases_list, y_train, train_mask, batch_size)
+val_data = DataGenerator(fea_list, biases_list, y_val, val_mask, batch_size)
 
-        print('Test loss:', ts_loss / ts_step,
-              '; Test accuracy:', ts_acc / ts_step)
+# Train the model using the fit method
+history = model.fit(train_data, validation_data=val_data, epochs=nb_epochs)
 
-        print('start knn, kmean.....')
-        xx = np.expand_dims(jhy_final_embedding, axis=0)[test_mask]
-  
-        from numpy import linalg as LA
+# Save the trained model
+model.save('trained_model.h5')
 
-        # xx = xx / LA.norm(xx, axis=1)
-        yy = y_test[test_mask]
+# Load the model for evaluation
+model = tf.keras.models.load_model('trained_model.h5')
 
-        print('xx: {}, yy: {}'.format(xx.shape, yy.shape))
-        from jhyexps import my_KNN, my_Kmeans#, my_TSNE, my_Linear
+# Evaluate the model on the test set
+test_data = DataGenerator(fea_list, biases_list, y_test, test_mask, batch_size)
+test_loss, test_accuracy = model.evaluate(test_data)
 
-        my_KNN(xx, yy)
-        my_Kmeans(xx, yy)
+print('Test loss:', test_loss, '; Test accuracy:', test_accuracy)
 
-        sess.close()
+print('start knn, kmean.....')
+xx = np.expand_dims(jhy_final_embedding, axis=0)[test_mask]
+
+from numpy import linalg as LA
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.cluster import KMeans
+from sklearn.metrics import accuracy_score, adjusted_rand_score
+
+# xx = xx / LA.norm(xx, axis=1)
+yy = y_test[test_mask]
+
+print('xx: {}, yy: {}'.format(xx.shape, yy.shape))
+
+def my_KNN(embeddings, labels, n_neighbors=5):
+    """
+    Perform K-Nearest Neighbors classification on the embeddings.
+    Args:
+        embeddings: The embeddings generated by the model.
+        labels: The true labels for the embeddings.
+        n_neighbors: The number of neighbors to use for KNN.
+    Returns:
+        The classification accuracy.
+    """
+    knn = KNeighborsClassifier(n_neighbors=n_neighbors)
+    knn.fit(embeddings, labels)
+    pred_labels = knn.predict(embeddings)
+    accuracy = accuracy_score(labels, pred_labels)
+    print(f'KNN classification accuracy: {accuracy}')
+    return accuracy
+
+def my_Kmeans(embeddings, labels, n_clusters=5):
+    """
+    Perform K-Means clustering on the embeddings and compare with true labels.
+    Args:
+        embeddings: The embeddings generated by the model.
+        labels: The true labels for the embeddings.
+        n_clusters: The number of clusters to form.
+    Returns:
+        The cluster labels and the adjusted Rand index comparing the clusters with true labels.
+    """
+    kmeans = KMeans(n_clusters=n_clusters)
+    cluster_labels = kmeans.fit_predict(embeddings)
+    ari = adjusted_rand_score(labels, cluster_labels)
+    print(f'Adjusted Rand index: {ari}')
+    return cluster_labels, ari
+
+my_KNN(xx, yy)
+my_Kmeans(xx, yy)

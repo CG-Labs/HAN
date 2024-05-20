@@ -1,10 +1,11 @@
+<<<<<<< HEAD
 # Paper
 https://github.com/Jhy1993/Representation-Learning-on-Heterogeneous-Graph
 # HAN
 
 The source code of Heterogeneous Graph Attention Network (WWW-2019).
 
-The source code is based on [GAT](https://github.com/PetarV-/GAT) 
+The source code is based on [GAT](https://github.com/PetarV-/GAT)
 
 # Reference
 
@@ -19,7 +20,7 @@ year={2019}
 }
 ```
 
-# How to preprocess DBLP? 
+# How to preprocess DBLP?
 
 Demo: preprocess_dblp.py
 
@@ -41,14 +42,14 @@ embeddings for previous unseen nodes or even unseen graph" means the propose HAN
 # Datasets
 
 Preprocessed ACM can be found in:
-https://pan.baidu.com/s/1V2iOikRqHPtVvaANdkzROw 
-提取码：50k2 
+https://pan.baidu.com/s/1V2iOikRqHPtVvaANdkzROw
+提取码：50k2
 
 https://bupteducn-my.sharepoint.com/:u:/g/personal/jhy1993_bupt_edu_cn/EfLZcHE2e4xBplCVnzcJbQYBurNVOCk7ZIne2YsO3jKbSw?e=vMQ18v
 
 Preprocessed DBLP can be found in:
-https://pan.baidu.com/s/1Qr2e97MofXsBhUvQqgJqDg 
-提取码：6b3h  
+https://pan.baidu.com/s/1Qr2e97MofXsBhUvQqgJqDg
+提取码：6b3h
 
 https://bupteducn-my.sharepoint.com/:u:/g/personal/jhy1993_bupt_edu_cn/Ef6A6m2njZ5CqkTN8QcwU8QBuENpB7eDVJRnsV9cWXWmsA?e=wlErKk
 
@@ -63,5 +64,3 @@ python ex_acm3025.py
 
 # HAN in DGL
 https://github.com/dmlc/dgl/tree/master/examples/pytorch/han
-
-
