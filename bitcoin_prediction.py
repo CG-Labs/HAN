@@ -1,3 +1,4 @@
+import numpy as np
 import yfinance as yf
 from datetime import datetime
 import tensorflow as tf
@@ -17,9 +18,13 @@ def fetch_bitcoin_data(start_date, end_date):
 # Function to preprocess the data
 def preprocess_data(data):
     try:
-        # TODO: Implement actual preprocessing steps based on the model's requirements
-        # For now, we'll just return the data as is
-        return data
+        # Select the 'Close' column and normalize the data
+        close_prices = data['Close'].values
+        normalized_data = (close_prices - np.min(close_prices)) / (np.max(close_prices) - np.min(close_prices))
+        # Reshape the data to fit the model's input shape, if necessary
+        # For example, if the model expects a 3D input: [samples, timesteps, features]
+        reshaped_data = normalized_data.reshape(-1, 1, 1)
+        return reshaped_data
     except Exception as e:
         print(f"An error occurred during data preprocessing: {e}")
         return None
