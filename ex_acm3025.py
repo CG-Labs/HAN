@@ -13,6 +13,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
 
 dataset = 'acm'
 featype = 'fea'
+print('Loading model checkpoint file...')
 checkpt_file = 'pre_trained/{}/{}_allMP_multi_{}_.ckpt'.format(dataset, dataset, featype)
 print('model: {}'.format(checkpt_file))
 # training params
@@ -76,6 +77,7 @@ def preprocess_data(data):
 
 # Fetch and preprocess Bitcoin data
 start_date = '2020-01-01'  # Start date for fetching historical data
+print('Starting data fetching process...')
 end_date = '2023-05-11'    # End date for fetching historical data, set to the current date
 bitcoin_data = fetch_bitcoin_data(start_date, end_date)
 preprocessed_data = preprocess_data(bitcoin_data)
