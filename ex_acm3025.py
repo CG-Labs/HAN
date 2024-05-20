@@ -111,17 +111,17 @@ predictions = model.predict(preprocessed_data)
 print("Actual tensor shapes:", predictions.shape)
 
 import scipy.sparse as sp
-# Define the feature list and other related variables before their usage
-fea_list = [preprocessed_data]  # Assuming preprocessed_data is the feature list
-adj_list = [adjacency_matrix]  # Assuming adjacency_matrix is the adjacency list
-# Placeholder for labels and masks, need to be defined based on the actual data and requirements
-y_train = np.array([[0]])  # Placeholder
-y_val = np.array([[0]])    # Placeholder
-y_test = np.array([[0]])   # Placeholder
-train_mask = np.array([True])  # Placeholder
-val_mask = np.array([True])    # Placeholder
-test_mask = np.array([True])   # Placeholder
+# Generate dummy labels and masks based on the preprocessed data shape
+num_samples = preprocessed_data.shape[0]
+num_classes = 2  # Assuming binary classification for simplicity
+y_train = np.random.randint(0, 2, size=(num_samples, num_classes))
+y_val = np.random.randint(0, 2, size=(num_samples, num_classes))
+y_test = np.random.randint(0, 2, size=(num_samples, num_classes))
+train_mask = np.random.choice([True, False], size=(num_samples,))
+val_mask = np.random.choice([True, False], size=(num_samples,))
+test_mask = np.random.choice([True, False], size=(num_samples,))
 
+print(f"Generated dummy labels and masks for training, validation, and testing.")
 
 nb_nodes = fea_list[0].shape[0]
 ft_size = fea_list[0].shape[1]
@@ -156,12 +156,19 @@ class DataGenerator(tf.keras.utils.Sequence):
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return int(np.floor(len(self.feature_list[0]) / self.batch_size))
+        num_batches = int(np.floor(len(self.feature_list[0]) / self.batch_size))
+        print(f"Number of batches per epoch: {num_batches}")
+        return num_batches
 
     def __getitem__(self, index):
         'Generate one batch of data'
         # Generate indexes of the batch
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+
+        # Check if the batch is empty
+        if len(indexes) == 0:
+            print(f"Warning: Empty batch detected at index {index}. Skipping batch.")
+            return None
 
         # Find selected samples
         feature_list_temp = [np.squeeze(self.feature_list[k][indexes], axis=0) for k in range(len(self.feature_list))]
@@ -170,6 +177,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         # Generate data
         X, y, mask = self.__data_generation(feature_list_temp, bias_list_temp, indexes)
 
+        print(f"Generated batch {index + 1} with {len(indexes)} samples.")
         return X, y, mask
 
     def on_epoch_end(self):
@@ -209,9 +217,9 @@ val_data = DataGenerator(fea_list, biases_list, y_val, val_mask, batch_size)
 print("Data generators ready.")
 
 # Train the model using the fit method
-print("Starting model training...")
+print("Starting model training at", time.strftime("%Y-%m-%d %H:%M:%S"))
 history = model.fit(train_data, validation_data=val_data, epochs=nb_epochs)
-print("Model training complete.")
+print("Model training completed at", time.strftime("%Y-%m-%d %H:%M:%S"))
 
 # Save the trained model
 print("Saving the trained model...")
