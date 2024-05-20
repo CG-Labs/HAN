@@ -14,17 +14,21 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
 dataset = 'acm'
 featype = 'fea'
 print('Loading model checkpoint file...')
+# Add debug print statement before loading the model checkpoint
+print('Debug: About to load model checkpoint...')
 checkpt_file = 'pre_trained/{}/{}_allMP_multi_{}_.ckpt'.format(dataset, dataset, featype)
+# Add debug print statement after loading the model checkpoint
+print('Debug: Model checkpoint loaded.')
 print('model: {}'.format(checkpt_file))
 # training params
 batch_size = 1
-nb_epochs = 5  # Reduced number of epochs for quicker testing
+nb_epochs = 1  # Reduced to 1 for quick debugging iteration
 patience = 100
 lr = 0.005  # learning rate
 l2_coef = 0.001  # weight decay
 # numbers of hidden units per each attention head in each layer
-hid_units = [8]
-n_heads = [8, 1]  # additional entry for the output layer
+hid_units = [4]  # Reduced complexity for debugging
+n_heads = [1, 1]  # Reduced complexity for debugging
 residual = False
 nonlinearity = tf.nn.elu
 model = HeteGAT_multi
@@ -46,9 +50,12 @@ def fetch_bitcoin_data(start_date, end_date):
     Fetch historical Bitcoin data from Yahoo Finance.
     """
     print(f"Fetching Bitcoin data from {start_date} to {end_date}...")
-    bitcoin_data = yf.download('BTC-USD', start=start_date, end=end_date)
-    print("Data fetching complete.")
-    print("Bitcoin data shape:", bitcoin_data.shape)
+    try:
+        bitcoin_data = yf.download('BTC-USD', start=start_date, end=end_date)
+        print("Data fetching complete.")
+        print("Bitcoin data shape:", bitcoin_data.shape)
+    except Exception as e:
+        print(f"Error during data fetching: {e}")
     return bitcoin_data
 
 def preprocess_data(data):
@@ -57,32 +64,36 @@ def preprocess_data(data):
     Normalize the 'Close' prices and reshape the data for the model input.
     """
     print("Starting data preprocessing...")
-    # Normalize the 'Close' prices
-    close_prices = data['Close'].values
-    normalized_prices = (close_prices - np.mean(close_prices)) / np.std(close_prices)
+    try:
+        # Normalize the 'Close' prices
+        close_prices = data['Close'].values
+        normalized_prices = (close_prices - np.mean(close_prices)) / np.std(close_prices)
 
-    # Reshape the data to match the model's input shape
-    # Assuming the model expects a 3D input shape (batch_size, timesteps, features)
-    # Here we use a sliding window approach to create a sequence of prices for each prediction
-    timesteps = 10  # The number of timesteps the model looks back for making a prediction
-    features = 1    # The number of features used for prediction, here it's just the normalized 'Close' price
-    samples = len(normalized_prices) - timesteps + 1
+        # Reshape the data to match the model's input shape
+        # Assuming the model expects a 3D input shape (batch_size, timesteps, features)
+        # Here we use a sliding window approach to create a sequence of prices for each prediction
+        timesteps = 10  # The number of timesteps the model looks back for making a prediction
+        features = 1    # The number of features used for prediction, here it's just the normalized 'Close' price
+        samples = len(normalized_prices) - timesteps + 1
 
-    X = np.zeros((samples, timesteps, features))
-    for i in range(samples):
-        X[i] = normalized_prices[i:i+timesteps].reshape(timesteps, features)
+        X = np.zeros((samples, timesteps, features))
+        for i in range(50):  # Limit the number of data points processed to 50 for debugging
+            X[i] = normalized_prices[i:i+timesteps].reshape(timesteps, features)
 
-    print("Data preprocessing complete. Shape of preprocessed data:", X.shape)
+        print("Data preprocessing complete. Shape of preprocessed data:", X.shape)
+    except Exception as e:
+        print(f"Error during data preprocessing: {e}")
     return X
 
 # Fetch and preprocess Bitcoin data
-start_date = '2020-01-01'  # Start date for fetching historical data
+start_date = '2023-05-01'  # Adjusted start date for fetching historical data to a shorter period
+end_date = '2023-05-08'    # Adjusted end date for fetching historical data to a shorter period
 print('Starting data fetching process...')
-end_date = '2023-05-11'    # End date for fetching historical data, set to the current date
 bitcoin_data = fetch_bitcoin_data(start_date, end_date)
+print('Data fetching process completed.')
 preprocessed_data = preprocess_data(bitcoin_data)
+print('Data preprocessing process completed.')
 
-# Define the number of timesteps and features for the model input
 timesteps = 10  # The number of timesteps the model looks back for making a prediction
 features = 1    # The number of features used for prediction, here it's just the normalized 'Close' price
 
@@ -198,19 +209,32 @@ class DataGenerator(tf.keras.utils.Sequence):
         return X, y, mask
 
 # Instantiate the model and call the inference method
-print("Instantiating the model...")
+print('Model instantiation process started.')
+# Add debug print statement before model instantiation
+print('Debug: Starting model instantiation...')
+# Add debug print statement before calling the inference method
+print('Debug: Calling HeteGAT_multi.inference...')
 logits, final_embed, att_val = HeteGAT_multi.inference(inputs_list=fea_list, nb_classes=nb_classes, nb_nodes=nb_nodes, training=False, attn_drop=0.6, ffd_drop=0.6, bias_mat_list=biases_list, hid_units=hid_units, n_heads=n_heads, activation=tf.nn.elu, residual=residual, mp_att_size=128)
+# Add debug print statement after calling the inference method
+print('Debug: HeteGAT_multi.inference call completed.')
+# Add debug print statements to track the execution flow within the inference method
+print('Debug: logits shape:', logits.shape)
+print('Debug: final_embed shape:', final_embed.shape)
+print('Debug: att_val shape:', att_val.shape)
+# Add debug print statement after model instantiation
+print('Debug: Model instantiation completed.')
 print("Model instantiated with logits shape:", logits.shape, "and final_embed shape:", final_embed.shape)
-
-# Create a Keras model using the logits returned by the inference method
-model = tf.keras.Model(inputs=fea_list, outputs=logits)
+print('Model instantiation process completed.')
 print("Keras model created.")
 
 # Compile the Keras model with optimizer and loss function
-print("Compiling the model...")
+# Add debug print statement before compiling the model
+print("Debug: Compiling the model...")
 model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
               loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
+# Add debug print statement after compiling the model
+print("Debug: Model compiled successfully.")
 print("Model compiled.")
 
 # Prepare the data generators for training and validation
@@ -220,8 +244,10 @@ val_data = DataGenerator(fea_list, biases_list, y_val, val_mask, batch_size)
 print("Data generators ready.")
 
 # Train the model using the fit method
+print('Model training process started.')
 print("Starting model training at", time.strftime("%Y-%m-%d %H:%M:%S"))
 history = model.fit(train_data, validation_data=val_data, epochs=nb_epochs)
+print('Model training process completed.')
 print("Model training completed at", time.strftime("%Y-%m-%d %H:%M:%S"))
 
 # Save the trained model
@@ -237,7 +263,9 @@ print("Model loaded for evaluation. Model summary:")
 model.summary()
 
 # Evaluate the model on the test set
+print('Model evaluation process started.')
 print("Evaluating the model on the test set...")
 test_data = DataGenerator(fea_list, biases_list, y_test, test_mask, batch_size)
 test_loss, test_accuracy = model.evaluate(test_data)
+print('Model evaluation process completed.')
 print(f"Test evaluation complete. Loss: {test_loss}; Accuracy: {test_accuracy}")
