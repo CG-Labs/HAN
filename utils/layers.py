@@ -56,13 +56,21 @@ class ReshapeBiasMatLayer(tf.keras.layers.Layer):
         # Calculate the total number of elements in bias_mat
         total_elements_bias_mat = tf.size(bias_mat)
         # Calculate the side length of the square matrix after reshaping
-        # The side length should be the square root of the total number of elements in bias_mat
-        # divided by the batch size of seq_fts, ensuring the total number of elements remains the same
         side_length = tf.cast(tf.sqrt(tf.cast(total_elements_bias_mat / seq_fts_shape[0], tf.float32)), tf.int32)
-        # Use tf.cond to perform the conditional check and assignment
-        side_length_corrected = tf.cond(tf.math.equal(side_length * side_length * seq_fts_shape[0], total_elements_bias_mat),
-                                        lambda: side_length,
-                                        lambda: side_length + 1)
+        # Calculate the corrected side length to ensure the reshaped tensor has the correct number of elements
+        expected_elements = side_length * side_length * seq_fts_shape[0]
+
+        # Define the function to adjust side_length_corrected if the expected elements do not match
+        def adjust_side_length():
+            element_diff = total_elements_bias_mat - expected_elements
+            rows_to_add = tf.cast(tf.math.ceil(tf.sqrt(tf.cast(element_diff, tf.float32))), tf.int32)
+            return side_length + rows_to_add
+
+        # Use tf.cond to conditionally adjust side_length_corrected
+        side_length_corrected = tf.cond(tf.math.not_equal(expected_elements, total_elements_bias_mat),
+                                        adjust_side_length,
+                                        lambda: side_length)
+
         # Reshape bias_mat to have the shape [batch_size, side_length_corrected, side_length_corrected]
         bias_mat_reshaped = tf.reshape(bias_mat, [seq_fts_shape[0], side_length_corrected, side_length_corrected])
         return bias_mat_reshaped
